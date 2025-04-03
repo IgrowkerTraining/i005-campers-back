@@ -17,5 +17,25 @@ model User {
   id    Int     @id @default(autoincrement())
   email String  @unique
   name  String?
+
+  Camping Camping[]
 }
 
+model Camping {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  description     String
+  location        String   // Ciudad/Provincia
+  pricePerNight   Float
+  phone           String
+  whatsapp        String
+  hasGrills       Boolean  @default(false)
+  hasParking      Boolean  @default(false)
+  rentsTents      Boolean  @default(false)
+  nearNature      String[] // Ej: ["river", "beach"]
+  photos          String[] // URLs de imágenes
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
