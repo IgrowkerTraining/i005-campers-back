@@ -7,7 +7,7 @@ import { CreateCampingDto } from './dto/create-camping.dto';
 export class CampingsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateCampingDto, userId: number) {
+  async create(data: CreateCampingDto, userId: string) {
     const campingData: Prisma.CampingCreateInput = {
       ...data,
       user: { connect: { id: userId } },
