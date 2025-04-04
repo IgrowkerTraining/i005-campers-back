@@ -7,22 +7,32 @@ import { CreateCampingDto } from './dto/create-camping.dto';
 export class CampingsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateCampingDto, userId: number) {
-    const campingData: Prisma.CampingCreateInput = {
-      ...data,
-      user: { connect: { id: userId } },
-      nearNature: data.nearNature || [],
-      photos: data.photos || []
-    };
-    
-    return this.prisma.camping.create({ data: campingData });
-  }
-
   async findAll() {
-    return this.prisma.camping.findMany();
+    return this.prisma.camping.findMany({
+      include: {
+        location: true,
+        pricing: true,
+        amenities: true,
+        nearbyAttractions: true 
+      }
+    });
   }
 
   async remove(id: number) {
-    return this.prisma.camping.delete({ where: { id } });
-  } 
+    return this.prisma.camping.delete({
+      where: { id }
+    });
+  }
+
+  async create(createCampingDto: CreateCampingDto, data: Prisma.CampingCreateInput) {
+    return this.prisma.camping.create({
+      data,
+      include: {
+        location: true,
+        pricing: true,
+        amenities: true,
+        nearbyAttractions: true 
+      }
+    });
+  }
 }
