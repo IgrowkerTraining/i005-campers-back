@@ -13,26 +13,38 @@ export class CampingsService {
         location: true,
         pricing: true,
         amenities: true,
-        nearbyAttractions: true 
-      }
+        nearbyAttractions: true,
+      },
     });
   }
 
   async remove(id: number) {
     return this.prisma.camping.delete({
-      where: { id }
+      where: { id },
     });
   }
 
-  async create(createCampingDto: CreateCampingDto, data: Prisma.CampingCreateInput) {
-    return this.prisma.camping.create({
-      data,
-      include: {
-        location: true,
-        pricing: true,
-        amenities: true,
-        nearbyAttractions: true 
-      }
+  async create(data: CreateCampingDto, id: string) {
+    const { location, ...rest } = data;
+
+    const locationresponse = await this.prisma.location.create({
+      data: location,
+    });
+
+    await this.prisma.camping.create({
+      data: {
+        ...rest,
+        user: {
+          connect: {
+            id: id,
+          },
+        },
+        location: {
+          connect: {
+            id: locationresponse.id,
+          },
+        },
+      },
     });
   }
 }
