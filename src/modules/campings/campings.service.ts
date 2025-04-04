@@ -25,6 +25,10 @@ export class CampingsService {
   }
 
   async create(createCampingDto: CreateCampingDto, data: Prisma.CampingCreateInput) {
+
+    if (!createCampingDto.name || !createCampingDto.description) {
+      throw new Error('Name and description are required');
+    }
     return this.prisma.camping.create({
       data,
       include: {
