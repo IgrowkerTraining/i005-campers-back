@@ -6,12 +6,15 @@ import { CampingsService } from './modules/campings/campings.service';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [UsersModule, CampingsModule, AuthModule,
+  imports: [
+    UsersModule,
+    CampingsModule,
+    AuthModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
       signOptions: {
-        expiresIn: '1h',
+        expiresIn: '7d',
       },
     }),
   ],
