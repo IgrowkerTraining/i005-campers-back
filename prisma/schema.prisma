@@ -1,12 +1,6 @@
-  // This is your Prisma schema file,
-  // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-  // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-  // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-  generator client {
-    provider = "prisma-client-js"
-  }
+generator client {
+  provider = "prisma-client-js"
+}
 
   datasource db {
     provider = "postgresql"
@@ -22,21 +16,55 @@
     Camping Camping[]
   }
 
-  model Camping {
-    id              Int      @id @default(autoincrement())
-    name            String   @unique
-    description     String
-    location        String   // Ciudad/Provincia
-    pricePerNight   Float
-    phone           String
-    whatsapp        String
-    hasGrills       Boolean  @default(false)
-    hasParking      Boolean  @default(false)
-    rentsTents      Boolean  @default(false)
-    nearNature      String[] // Ej: ["river", "beach"]
-    photos          String[] // URLs de imágenes
-    userId          String
-    user            User     @relation(fields: [userId], references: [id])
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
-  }
+model Camping {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String
+  location    Location  @relation(fields: [locationId], references: [id])
+  locationId  Int
+  nearNature      String[] // Ej: ["river", "beach"]
+  pricing     Pricing[]
+  amenities   Amenity[]
+  nearbyAttractions NearbyAttraction[]
+
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([name]) // Optimización para búsquedas
+  @@index([nearNature]) // Para búsquedas más eficientes
+}
+
+model Location {
+  id          Int      @id @default(autoincrement())
+  city        String
+  region      String
+  country     String   @default("España")
+  coordinates String?
+  campings    Camping[]
+}
+
+model Pricing {
+  id          Int     @id @default(autoincrement())
+  pricePerNight Float
+  season      String
+  camping     Camping @relation(fields: [campingId], references: [id])
+  campingId   Int
+}
+
+model Amenity {
+  id        Int      @id @default(autoincrement())
+  name      String
+  available Boolean  @default(true)
+  campings  Camping[]
+}
+
+model NearbyAttraction {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String   // "playa", "montaña", "parque-nacional", etc.
+  distance  Float    // En kilómetros
+  camping   Camping  @relation(fields: [campingId], references: [id])
+  campingId Int
+}
