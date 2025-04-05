@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCampingDto } from './dto/create-camping.dto';
 
@@ -25,11 +24,7 @@ export class CampingsService {
   }
 
   async create(data: CreateCampingDto, id: string) {
-    const { location, ...rest } = data;
-
-    const locationresponse = await this.prisma.location.create({
-      data: location,
-    });
+    const { location, pricing, amenities, ...rest } = data;
 
     await this.prisma.camping.create({
       data: {
@@ -40,9 +35,10 @@ export class CampingsService {
           },
         },
         location: {
-          connect: {
-            id: locationresponse.id,
-          },
+          create: location,
+        },
+        pricing: {
+          create: pricing,
         },
       },
     });

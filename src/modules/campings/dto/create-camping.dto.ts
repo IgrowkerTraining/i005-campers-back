@@ -11,35 +11,36 @@ import {
   IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Location, Prisma, User } from '@prisma/client';
+import { Amenity, Location, Pricing, Prisma, User } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
-class PricingDto {
-  @IsNotEmpty()
-  @IsString()
-  season: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  pricePerNight: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string;
-
-  @IsNotEmpty()
-  @IsDateString()
-  validFrom: string;
-
-  @IsNotEmpty()
-  @IsDateString()
-  validTo: string;
+class LocationClass implements Omit<Location, 'id'> {
+  @ApiProperty()
+  city: string;
+  @ApiProperty()
+  region: string;
+  @ApiProperty()
+  country: string;
+  @ApiProperty()
+  coordinates: string;
 }
 
-class AmenityDto {
+class PricingDto implements Omit<Pricing, 'id' | 'campingId'> {
   @IsNotEmpty()
-  @IsNumber()
-  id: number;
+  @IsString()
+  @ApiProperty()
+  pricePerNight: number;
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty()
+  season: string;
+}
+
+class AmenityDto implements Omit<Amenity, 'id'> {
+  @ApiProperty()
+  name: string;
+  @ApiProperty()
+  available: boolean;
 }
 
 class NearbyAttractionDto {
@@ -65,10 +66,10 @@ export class CreateCampingDto {
   @IsNotEmpty()
   @IsString()
   description: string;
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
-  slug?: string;
+  // @ApiProperty()
+  // @IsOptional()
+  // @IsString()
+  // slug?: string;
 
   @IsOptional()
   @IsArray()
@@ -90,16 +91,17 @@ export class CreateCampingDto {
   @IsUrl({}, { each: true })
   photos?: string[];
 
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // // @Type(() => PricingDto)
-  // pricing?: Prisma.PricingCreateNestedManyWithoutCampingInput;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @ApiProperty({ type: PricingDto })
+  pricing?: PricingDto;
 
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // amenities?: Prisma.AmenityIncludeCreateManyAndReturn;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @ApiProperty({ type: AmenityDto })
+  amenities?: AmenityDto;
 
   // @IsOptional()
   // @IsArray()
@@ -111,7 +113,6 @@ export class CreateCampingDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiProperty()
-  @Type(() => Location)
+  @ApiProperty({ type: LocationClass })
   location: Location;
 }
