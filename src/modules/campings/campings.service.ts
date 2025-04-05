@@ -24,7 +24,7 @@ export class CampingsService {
   }
 
   async create(data: CreateCampingDto, id: string) {
-    const { location, pricing, amenities, ...rest } = data;
+    const { location, pricing, amenities, nearbyAttractions, ...rest } = data;
 
     await this.prisma.camping.create({
       data: {
@@ -39,6 +39,12 @@ export class CampingsService {
         },
         pricing: {
           create: pricing,
+        },
+        amenities: {
+          create: amenities,
+        },
+        nearbyAttractions: {
+          create: nearbyAttractions,
         },
       },
     });

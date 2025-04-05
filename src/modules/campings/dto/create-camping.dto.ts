@@ -11,10 +11,10 @@ import {
   IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Amenity, Location, Pricing, Prisma, User } from '@prisma/client';
+import { Amenity, Location, NearbyAttraction, Pricing, Prisma, User } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
-class LocationClass implements Omit<Location, 'id'> {
+class LocationDto implements Omit<Location, 'id'> {
   @ApiProperty()
   city: string;
   @ApiProperty()
@@ -43,17 +43,21 @@ class AmenityDto implements Omit<Amenity, 'id'> {
   available: boolean;
 }
 
-class NearbyAttractionDto {
+class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> {
+  
   @IsNotEmpty()
   @IsString()
+  @ApiProperty()
   name: string;
 
   @IsNotEmpty()
   @IsString()
+  @ApiProperty()
   type: string;
 
   @IsNotEmpty()
   @IsNumber()
+  @ApiProperty()
   distance: number;
 }
 
@@ -62,10 +66,12 @@ export class CreateCampingDto {
   @IsString()
   @ApiProperty()
   name: string;
+  
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   description: string;
+  
   // @ApiProperty()
   // @IsOptional()
   // @IsString()
@@ -103,16 +109,16 @@ export class CreateCampingDto {
   @ApiProperty({ type: AmenityDto })
   amenities?: AmenityDto;
 
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // // @Type(() => Prisma.NearbyAttractionCreateNestedManyWithoutCampingInput)
-  // nearbyAttractions?: Prisma.NearbyAttractionCreateNestedManyWithoutCampingInput;
-
   @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @ApiProperty({ type: NearbyAttractionDto })
+  nearbyAttractions?: NearbyAttractionDto;
 
-  @ApiProperty({ type: LocationClass })
+  // @IsOptional()
+  // @IsBoolean()
+  // isActive?: boolean;
+
+  @ApiProperty({ type: LocationDto })
   location: Location;
 }
