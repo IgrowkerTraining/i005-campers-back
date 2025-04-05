@@ -17,16 +17,7 @@ export class CampingSearchService {
   });
 
   async searchCampings(filters: SearchCampingDto) {
-    const {
-      location,
-      region,
-      minPrice,
-      maxPrice,
-      amenities,
-      proximityToNature,
-      page = 1,
-      limit = 10,
-    } = filters;
+    const { location, region, minPrice, maxPrice, amenities, proximityToNature, page = 1, limit = 10 } = filters;
 
     const where: Prisma.CampingWhereInput = {
       AND: [
@@ -42,18 +33,10 @@ export class CampingSearchService {
               ],
             }
           : {},
-        region
-          ? { location: { region: { contains: region, mode: 'insensitive' } } }
-          : {},
-        minPrice
-          ? { pricing: { some: { pricePerNight: { gte: minPrice } } } }
-          : {},
-        maxPrice
-          ? { pricing: { some: { pricePerNight: { lte: maxPrice } } } }
-          : {},
-        amenities?.length
-          ? { amenities: { some: { name: { in: amenities } } } }
-          : {},
+        region ? { location: { region: { contains: region, mode: 'insensitive' } } } : {},
+        minPrice ? { pricing: { some: { pricePerNight: { gte: minPrice } } } } : {},
+        maxPrice ? { pricing: { some: { pricePerNight: { lte: maxPrice } } } } : {},
+        amenities?.length ? { amenities: { some: { name: { in: amenities } } } } : {},
         proximityToNature
           ? {
               nearbyAttractions: {
@@ -68,7 +51,7 @@ export class CampingSearchService {
       ...this.campingWithDetails,
       where,
       skip: (page - 1) * limit,
-      take: limit,
+      take: +limit,
       orderBy: {
         pricing: { _count: 'asc' },
       },
