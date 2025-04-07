@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCampingDto } from './dto/create-camping.dto';
 
@@ -13,30 +12,41 @@ export class CampingsService {
         location: true,
         pricing: true,
         amenities: true,
-        nearbyAttractions: true 
-      }
+        nearbyAttractions: true,
+      },
     });
   }
 
   async remove(id: number) {
     return this.prisma.camping.delete({
-      where: { id }
+      where: { id },
     });
   }
 
-  async create(createCampingDto: CreateCampingDto, data: Prisma.CampingCreateInput) {
+  async create(data: CreateCampingDto, id: string) {
+    const { location, pricing, amenities, nearbyAttractions, ...rest } = data;
 
-    if (!createCampingDto.name || !createCampingDto.description) {
-      throw new Error('Name and description are required');
-    }
-    return this.prisma.camping.create({
-      data,
-      include: {
-        location: true,
-        pricing: true,
-        amenities: true,
-        nearbyAttractions: true 
-      }
+    await this.prisma.camping.create({
+      data: {
+        ...rest,
+        user: {
+          connect: {
+            id: id,
+          },
+        },
+        location: {
+          create: location,
+        },
+        pricing: {
+          create: pricing,
+        },
+        amenities: {
+          create: amenities,
+        },
+        nearbyAttractions: {
+          create: nearbyAttractions,
+        },
+      },
     });
   }
 }
