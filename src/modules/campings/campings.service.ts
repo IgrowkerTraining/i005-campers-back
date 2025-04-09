@@ -46,6 +46,12 @@ export class CampingsService {
         nearbyAttractions: {
           create: nearbyAttractions,
         },
+        limitCamping: {
+          create: {
+            maxTents: 2,
+            maxUsers: 5,
+          },
+        },
       },
     });
   }

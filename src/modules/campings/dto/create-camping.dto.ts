@@ -44,7 +44,6 @@ class AmenityDto implements Omit<Amenity, 'id'> {
 }
 
 class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> {
-  
   @IsNotEmpty()
   @IsString()
   @ApiProperty()
@@ -66,22 +65,22 @@ export class CreateCampingDto {
   @IsString()
   @ApiProperty()
   name: string;
-  
+
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   description: string;
-  
+
   // @ApiProperty()
   // @IsOptional()
   // @IsString()
   // slug?: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @ArrayMinSize(1)
-  highlights?: string[];
+  // @IsOptional()
+  // @IsArray()
+  // @IsString({ each: true })
+  // @ArrayMinSize(1)
+  // highlights?: string[];
 
   // @IsNotEmpty()
   // @IsNumber()
@@ -91,11 +90,6 @@ export class CreateCampingDto {
   @IsArray()
   @IsString({ each: true })
   nearNature?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @IsUrl({}, { each: true })
-  photos?: string[];
 
   @IsOptional()
   @IsArray()
