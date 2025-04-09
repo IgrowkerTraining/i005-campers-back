@@ -1,10 +1,22 @@
 -- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "name" TEXT,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "owner" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Camping" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "locationId" INTEGER NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "nearNature" TEXT[],
+    "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -61,7 +73,13 @@ CREATE TABLE "_AmenityToCamping" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
 CREATE INDEX "Camping_name_idx" ON "Camping"("name");
+
+-- CreateIndex
+CREATE INDEX "Camping_nearNature_idx" ON "Camping"("nearNature");
 
 -- CreateIndex
 CREATE INDEX "_AmenityToCamping_B_index" ON "_AmenityToCamping"("B");

@@ -6,6 +6,7 @@ import { CampingsService } from './modules/campings/campings.service';
 import { JwtModule } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
+import { ReservationsModule } from './modules/reservations/reservations.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { createKeyv } from '@keyv/redis';
     UsersModule,
     CampingsModule,
     AuthModule,
+    ReservationsModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
