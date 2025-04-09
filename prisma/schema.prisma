@@ -16,24 +16,50 @@ generator client {
     Camping Camping[]
   }
 
+  model Reservation {
+  id         Int     @id @default(autoincrement())
+  camping    Camping @relation(fields: [campingId], references: [id])
+  campingId  Int
+  startDate  DateTime
+  endDate    DateTime
+
+  peopleCount Int
+  tentsCount  Int
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  }
+
 model Camping {
   id          Int       @id @default(autoincrement())
   name        String
   description String
   location    Location  @relation(fields: [locationId], references: [id])
   locationId  Int
-  nearNature      String[] // Ej: ["river", "beach"]
+  nearNature  String[] // Ej: ["river", "beach"]
   pricing     Pricing[]
   amenities   Amenity[]
   nearbyAttractions NearbyAttraction[]
+  reservations Reservation[]
+
+  limitCamping  LimitCamping  @relation(fields: [limitCampingId], references: [id])
+  limitCampingId  Int @unique
 
   user        User      @relation(fields: [userId], references: [id])
   userId      String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@index([name]) // Optimización para búsquedas
-  @@index([nearNature]) // Para búsquedas más eficientes
+  @@index([name]) 
+  @@index([nearNature]) 
+}
+
+model LimitCamping {
+  id Int @id @default(autoincrement())
+  maxUsers  Int
+  maxTents  Int
+
+  camping   Camping?
 }
 
 model Location {
