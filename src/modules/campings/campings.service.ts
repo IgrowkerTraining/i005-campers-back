@@ -31,10 +31,24 @@ export class CampingsService {
       // return JSON.parse(JSON.stringify(campings));
     });
   }
+  // async remove(id: number) {
+  //   return this.prisma.camping.delete({
+  //     where: { id },
+  //   });
+  // }
   async remove(id: number) {
-    return this.prisma.camping.delete({
-      where: { id },
-    });
+    try {
+      return await this.prisma.camping.delete({ where: { id } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2003') {
+          throw new BadRequestException(
+            `No se puede eliminar el camping porque tiene datos relacionados. ${error.meta?.field_name}`,
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   async create(data: CreateCampingDto, userId: string) {
