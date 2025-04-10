@@ -21,6 +21,7 @@ export class CampingsService {
         pricing: true,
         amenities: true,
         nearbyAttractions: true,
+        limitCamping: true,
       },
     });
 
@@ -54,7 +55,9 @@ export class CampingsService {
         this.prisma.camping.delete({ where: { id } }),
       ]);
 
-      return plainToInstance(CampingResponseDto, campingToDelete);
+      return plainToInstance(CampingResponseDto, campingToDelete, {
+        excludeExtraneousValues: true,
+      });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw new InternalServerErrorException(`Error al eliminar el camping: ${error.message}`);
@@ -64,7 +67,7 @@ export class CampingsService {
   }
 
   async create(data: CreateCampingDto, userId: string) {
-    const { location, pricing = [], amenities = [], nearbyAttractions = [], ...rest } = data;
+    const { location, pricing = [], amenities = [], nearbyAttractions = [], limitCamping, ...rest } = data;
 
     return this.prisma.$transaction(async (tx) => {
       const createdCamping = await tx.camping.create({
@@ -100,12 +103,14 @@ export class CampingsService {
             }),
           },
           nearbyAttractions: { create: nearbyAttractions },
+          limitCamping: { create: { maxTents: limitCamping.maxTents, maxUsers: limitCamping.maxUsers } },
         },
         include: {
           location: true,
           pricing: true,
           amenities: true,
           nearbyAttractions: true,
+          limitCamping: true,
         },
       });
       return plainToInstance(CampingResponseDto, createdCamping, {

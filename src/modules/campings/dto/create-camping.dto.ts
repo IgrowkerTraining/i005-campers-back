@@ -13,6 +13,7 @@ import {
   ValidateIf,
   IsDate,
   IsJSON,
+  isNotEmpty,
 } from 'class-validator';
 import { Amenity, Location, NearbyAttraction, Pricing, Prisma, User } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
@@ -60,6 +61,15 @@ export class CampingResponseDto {
 
   @Expose()
   amenities: string[];
+
+  @Expose()
+  limitCamping: {
+    maxTents: number;
+    maxUsers: number;
+  };
+
+  @Expose()
+  limitCampingId: number;
 
   @Expose()
   location: {
@@ -152,13 +162,6 @@ export class CreateCampingDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMinSize(1)
-  highlights?: string[];
-
-  @ApiProperty()
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
   nearNature?: string[];
 
   @ApiProperty()
@@ -185,6 +188,22 @@ export class CreateCampingDto {
   @ValidateNested({ each: true })
   nearbyAttractions?: NearbyAttractionDto;
 
+  @ApiProperty({
+    type: 'object',
+    properties: {
+      maxTents: { type: 'number', example: 5 },
+      maxUsers: { type: 'number', example: 10 },
+    },
+  })
+  @IsNotEmpty()
+  @ValidateNested()
+  limitCamping: {
+    maxTents: number;
+    maxUsers: number;
+  };
+
   @ApiProperty({ type: LocationDto })
+  @IsNotEmpty()
+  @ValidateNested()
   location: Location;
 }
