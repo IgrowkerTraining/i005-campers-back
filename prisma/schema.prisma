@@ -13,7 +13,7 @@ model User {
   name     String?
   owner    Boolean   @default(false)
   password String
-  Camping  Camping[] @relation(fields: [id], references: [userId], onDelete: Cascade)
+  campings Camping[]
 }
 
 model Camping {
@@ -30,7 +30,6 @@ model Camping {
   nearbyAttractions NearbyAttraction[]
   pricing           Pricing[]
   amenities         Amenity[]          @relation("AmenityToCamping")
-  PricingCamping    PricingCamping[]
 
   @@index([name])
   @@index([nearNature])
@@ -45,24 +44,12 @@ model Location {
   campings    Camping[]
 }
 
-model PricingCamping {
-  id        Int     @id @default(autoincrement())
-  pricing   Pricing @relation(fields: [pricingId], references: [id])
-  pricingId Int
-  camping   Camping @relation(fields: [campingId], references: [id])
-  campingId Int
-
-  @@unique([pricingId, campingId])
-}
-
 model Pricing {
-  id            Int              @id @default(autoincrement())
+  id            Int     @id @default(autoincrement())
   pricePerNight Float
   season        String
   campingId     Int
-  // campings      Camping @relation(fields: [campingId], references: [id], onDelete: Cascade)
-  campings      PricingCamping[] @relation(fields: [campingId], references: [id], onDelete: Cascade)
-  Camping       Camping          @relation(fields: [campingId], references: [id])
+  camping       Camping @relation(fields: [campingId], references: [id])
 }
 
 model Amenity {
@@ -78,5 +65,5 @@ model NearbyAttraction {
   type      String
   distance  Float
   campingId Int
-  camping   Camping @relation(fields: [campingId], references: [id], onDelete: Cascade)
+  camping   Camping @relation(fields: [campingId], references: [id])
 }

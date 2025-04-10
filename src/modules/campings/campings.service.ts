@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CampingResponseDto, CreateCampingDto } from './dto/create-camping.dto';
 import { plainToInstance } from 'class-transformer';
-import { Prisma } from '@prisma/client';
+import { Camping, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CampingsService {
@@ -26,26 +26,38 @@ export class CampingsService {
 
     return plainToInstance(CampingResponseDto, campings, {
       excludeExtraneousValues: true, // Solo incluye campos marcados con @Expose
-
-      // console.log('Coordenas crudas:', campings[0]?.location?.coordinates);
-      // return JSON.parse(JSON.stringify(campings));
     });
   }
-  // async remove(id: number) {
-  //   return this.prisma.camping.delete({
-  //     where: { id },
-  //   });
-  // }
-  async remove(id: number) {
+
+  async remove(id: number): Promise<Camping> {
     try {
-      return await this.prisma.camping.delete({ where: { id } });
+      // Primero obtener el camping con sus relaciones
+      const campingToDelete = await this.prisma.camping.findUnique({
+        where: { id },
+        include: {
+          location: true,
+          pricing: true,
+          amenities: true,
+          nearbyAttractions: true,
+        },
+      });
+
+      if (!campingToDelete) {
+        throw new NotFoundException(`Camping con ID ${id} no encontrado`);
+      }
+
+      // Eliminar en orden inverso para mantener la integridad referencial
+      await this.prisma.$transaction([
+        this.prisma.pricing.deleteMany({ where: { campingId: id } }),
+        this.prisma.nearbyAttraction.deleteMany({ where: { campingId: id } }),
+        this.prisma.amenity.deleteMany({ where: { campings: { some: { id } } } }),
+        this.prisma.camping.delete({ where: { id } }),
+      ]);
+
+      return plainToInstance(CampingResponseDto, campingToDelete);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2003') {
-          throw new BadRequestException(
-            `No se puede eliminar el camping porque tiene datos relacionados. ${error.meta?.field_name}`,
-          );
-        }
+        throw new InternalServerErrorException(`Error al eliminar el camping: ${error.message}`);
       }
       throw error;
     }
@@ -53,21 +65,6 @@ export class CampingsService {
 
   async create(data: CreateCampingDto, userId: string) {
     const { location, pricing = [], amenities = [], nearbyAttractions = [], ...rest } = data;
-    // // if (typeof data.location.coordinates === 'string') {
-    // //   try {
-    // //     data.location.coordinates = JSON.parse(data.location.coordinates);
-    // //   } catch (error) {
-    // //     throw new BadRequestException('Formato de coordenadas inválido');
-    // //   }
-    // // }
-    // if (location.coordinates) {
-    //   try {
-    //     location.coordinates =
-    //       typeof location.coordinates === 'string' ? JSON.parse(location.coordinates) : location.coordinates;
-    //   } catch (error) {
-    //     throw new BadRequestException('Formato de coordenadas inválido. Debe ser un objeto JSON válido.');
-    //   }
-    // }
 
     return this.prisma.$transaction(async (tx) => {
       const createdCamping = await tx.camping.create({
@@ -113,7 +110,6 @@ export class CampingsService {
       });
       return plainToInstance(CampingResponseDto, createdCamping, {
         excludeExtraneousValues: false,
-        // return JSON.parse(JSON.stringify(createdCamping));
       });
     });
   }

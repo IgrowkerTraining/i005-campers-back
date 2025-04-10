@@ -16,8 +16,7 @@ import {
 } from 'class-validator';
 import { Amenity, Location, NearbyAttraction, Pricing, Prisma, User } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform } from 'class-transformer';
-import { JsonValue } from '@prisma/client/runtime/library';
+import { Exclude, Expose, Transform } from 'class-transformer';
 
 export class CampingResponseDto {
   @Expose()
@@ -37,23 +36,30 @@ export class CampingResponseDto {
   @Transform(({ value }) => value.toISOString().split('T')[0])
   updatedAt: Date;
 
-  // @Expose()
-  // @Transform(({ value }) => {
-  //   if (!value) return null;
-  //   try {
-  //     return typeof value === 'string' ? JSON.parse(value) : value;
-  //   } catch {
-  //     return value; // Devuelve el valor original si falla el parseo
-  //   }
-  // })
-  // coordinates: Prisma.JsonValue;
-  // @Expose()
-  // location: {
-  //   city: string;
-  //   region: string;
-  //   country: string;
-  //   coordinates: any; // Usa "any" temporalmente para debug o Prisma.JsonValue si es consistente
-  // };
+  @Exclude()
+  userId: string;
+
+  @Expose()
+  nearNature: string[];
+
+  @Expose()
+  nearbyAttractions: {
+    name: string;
+    type: string;
+    distance: number;
+  }[];
+
+  @Expose()
+  locationId: number;
+
+  @Expose()
+  pricing: {
+    pricePerNight: number;
+    season: string;
+  };
+
+  @Expose()
+  amenities: string[];
 
   @Expose()
   location: {
@@ -65,8 +71,6 @@ export class CampingResponseDto {
 }
 
 class LocationDto implements Omit<Location, 'id'> {
-  // coordinates: string;
-  // coordinates: Prisma.JsonValue;
   @ApiProperty()
   city: string;
 
@@ -76,42 +80,10 @@ class LocationDto implements Omit<Location, 'id'> {
   @ApiProperty()
   country: string;
 
-  // @ApiProperty()
-  //   type: 'object',
-  //   properties: {
-  //     lat: { type: 'number' },
-  //     lng: { type: 'number' },
-  //   },
-  //   required: ['lat', 'lng'],
-  //   additionalProperties: false,
-  //   example: { lat: 40.4168, lng: -3.7038 },
-  //   description: 'Coordenadas en formato JSON { lat: number, lng: number }',
-  // })
-  // @IsOptional()
-  // // coordinates: any; // Usar JsonValue de Prisma
-  // coordinates: string;
   @ApiProperty()
   @IsOptional()
   coordinates: string;
 }
-
-// @ApiProperty({
-//   type: 'object',
-//   example: { lat: 40.7128, lng: -74.006 },
-// })
-// @ApiProperty({
-//   type: 'object',
-//   properties: {
-//     lat: { type: 'number' },
-//     lng: { type: 'number' },
-//   },
-//   required: ['lat', 'lng'],
-//   additionalProperties: false,
-//   example: { lat: 40.7128, lng: -74.006 },
-// })
-// @IsJSON({ message: 'Las coordenadas deben ser un JSON válido' })
-// coordinates: string;
-// coordinates: JsonValue;
 
 class PricingDto implements Omit<Pricing, 'id' | 'campingId'> {
   @ApiProperty()
