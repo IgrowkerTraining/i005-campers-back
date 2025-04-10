@@ -19,65 +19,12 @@ import { Amenity, Location, NearbyAttraction, Pricing, Prisma, User } from '@pri
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform } from 'class-transformer';
 
-export class CampingResponseDto {
-  @Expose()
-  id: number;
+class LimitCampingDto {
+  @ApiProperty()
+  maxTents: number;
 
-  @Expose()
-  name: string;
-
-  @Expose()
-  description: string;
-
-  @Expose()
-  @Transform(({ value }) => value.toISOString().split('T')[0])
-  createdAt: Date;
-
-  @Expose()
-  @Transform(({ value }) => value.toISOString().split('T')[0])
-  updatedAt: Date;
-
-  @Exclude()
-  userId: string;
-
-  @Expose()
-  nearNature: string[];
-
-  @Expose()
-  nearbyAttractions: {
-    name: string;
-    type: string;
-    distance: number;
-  }[];
-
-  @Expose()
-  locationId: number;
-
-  @Expose()
-  pricing: {
-    pricePerNight: number;
-    season: string;
-  };
-
-  @Expose()
-  amenities: string[];
-
-  @Expose()
-  limitCamping: {
-    maxTents: number;
-    maxUsers: number;
-  };
-
-  @Expose()
-  limitCampingId: number;
-
-  @Expose()
-  location: {
-    city: string;
-    region: string;
-    country: string;
-    coordinates: string; // O el tipo correcto
-  };
+  @ApiProperty()
+  maxUsers: number;
 }
 
 class LocationDto implements Omit<Location, 'id'> {
@@ -124,10 +71,10 @@ class AmenityDto {
   @IsBoolean()
   available?: boolean;
 
-  // Validación personalizada para asegurar que o tiene id o name
-  @ValidateIf((o) => !o.id && !o.name)
-  @IsNotEmpty({ message: 'Debe proporcionar id o name' })
-  _?: never;
+  // // Validación personalizada para asegurar que o tiene id o name
+  // @ValidateIf((o) => !o.id && !o.name)
+  // @IsNotEmpty({ message: 'Debe proporcionar id o name' })
+  // _?: never;
 }
 
 class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> {
@@ -145,6 +92,12 @@ class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> 
   @IsNotEmpty()
   @IsNumber()
   distance: number;
+
+  // @ApiProperty({ type: () => [NearbyAttractionDto] }) // <-- Array faltante
+  // @IsOptional()
+  // @IsArray()
+  // @ValidateNested({ each: true })
+  // nearbyAttractions?: NearbyAttractionDto[]; // <-- Cambiado de Dto a Dto[]
 }
 
 export class CreateCampingDto {
@@ -182,11 +135,17 @@ export class CreateCampingDto {
   @ValidateNested({ each: true })
   amenities?: AmenityDto[];
 
-  @ApiProperty({ type: NearbyAttractionDto })
+  // @ApiProperty({ type: NearbyAttractionDto })
+  // @IsOptional()
+  // @IsArray()
+  // @ValidateNested({ each: true })
+  // nearbyAttractions?: NearbyAttractionDto;
+
+  @ApiProperty({ type: () => [NearbyAttractionDto] }) // <-- Array faltante
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  nearbyAttractions?: NearbyAttractionDto;
+  nearbyAttractions?: NearbyAttractionDto[];
 
   @ApiProperty({
     type: 'object',
@@ -206,4 +165,84 @@ export class CreateCampingDto {
   @IsNotEmpty()
   @ValidateNested()
   location: Location;
+}
+
+export class CampingResponseDto {
+  @Expose()
+  id: number;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  description: string;
+
+  @Expose()
+  @Transform(({ value }) => value.toISOString().split('T')[0])
+  createdAt: Date;
+
+  @Expose()
+  @Transform(({ value }) => value.toISOString().split('T')[0])
+  updatedAt: Date;
+
+  @Exclude()
+  userId: string;
+
+  // @Expose()
+  // nearNature: string[];
+
+  // @Expose()
+  // nearbyAttractions: {
+  //   name: string;
+  //   type: string;
+  //   distance: number;
+  // }[];
+
+  @Expose()
+  @ApiProperty({ type: () => [String] })
+  nearNature: string[];
+
+  @Expose()
+  @ApiProperty({ type: () => [NearbyAttractionDto] })
+  nearbyAttractions: NearbyAttractionDto[];
+
+  @Exclude()
+  locationId: number;
+
+  @Expose()
+  pricing: {
+    pricePerNight: number;
+    season: string;
+  };
+
+  // @Expose()
+  // amenities: string[];
+  @Expose()
+  @ApiProperty({ type: () => [AmenityDto] }) // <-- Para arrays
+  amenities: string[];
+
+  // @Expose()
+  // limitCamping: {
+  //   maxTents: number;
+  //   maxUsers: number;
+  // };
+
+  @Exclude()
+  limitCampingId: number;
+
+  // @Expose()
+  // @ApiProperty({ type: () => LocationDto })
+  // location: {
+  //   city: string;
+  //   region: string;
+  //   country: string;
+  //   coordinates: string; // O el tipo correcto
+  // };
+  @Expose()
+  @ApiProperty({ type: () => LocationDto })
+  location: LocationDto;
+
+  @Expose()
+  @ApiProperty({ type: () => LimitCampingDto })
+  limitCamping: LimitCampingDto;
 }

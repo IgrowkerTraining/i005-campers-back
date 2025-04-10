@@ -30,7 +30,7 @@ model Reservation {
   updatedAt DateTime @updatedAt
 }
 
- model Camping {
+model Camping {
   id                Int                @id @default(autoincrement())
   name              String
   description       String
@@ -55,11 +55,10 @@ model Reservation {
 }
 
 model LimitCamping {
-  id       Int @id @default(autoincrement())
+  id       Int      @id @default(autoincrement())
   maxUsers Int
   maxTents Int
-
-  camping Camping?
+  camping  Camping?
 }
 
 model Location {
