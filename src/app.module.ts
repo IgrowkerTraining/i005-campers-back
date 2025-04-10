@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CampingsService } from './modules/campings/campings.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { MercadoPagoModule } from './modules/mercado-pago/mercado-pago.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ReservationsModule } from './modules/reservations/reservations.module';
         expiresIn: '7d',
       },
     }),
+    MercadoPagoModule,
   ],
   controllers: [],
   providers: [CampingsService],
