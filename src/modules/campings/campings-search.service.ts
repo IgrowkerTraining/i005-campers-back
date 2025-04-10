@@ -4,6 +4,7 @@ import { SearchCampingDto } from './dto/search-camping.dto';
 import { Prisma } from '@prisma/client';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { generateCacheKey } from 'src/common/keyCache.generate';
 
 @Injectable()
 export class CampingSearchService {
@@ -25,14 +26,15 @@ export class CampingSearchService {
     return new Promise((res, rej) => {
       setTimeout(() => {
         res(true);
-      }, 1500);
+      }, 900);
     });
   }
 
   async searchCampings(filters: SearchCampingDto) {
     const { location, region, minPrice, maxPrice, amenities, proximityToNature, page = 1, limit = 10 } = filters;
 
-    const resultCache = await this.cacheManager.get(`campings:${page}`);
+    const cacheKey = generateCacheKey(filters);
+    const resultCache = await this.cacheManager.get(cacheKey);
 
     if (resultCache) {
       return resultCache;
@@ -77,9 +79,10 @@ export class CampingSearchService {
         id: 'asc',
       },
     });
+    //visualizar cache
     await this.delay();
 
-    await this.cacheManager.set(`campings:${page}`, result, 30000);
+    await this.cacheManager.set(cacheKey, result, 30000);
     return result;
   }
 

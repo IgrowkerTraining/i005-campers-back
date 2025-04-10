@@ -28,6 +28,9 @@ generator client {
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  @@index([campingId])
+  @@index([startDate, endDate])
   }
 
 model Camping {
@@ -51,11 +54,12 @@ model Camping {
   updatedAt   DateTime  @updatedAt
 
   @@index([name]) 
-  @@index([nearNature]) 
+  @@index([locationId]) 
+  @@index([userId]) 
 }
 
 model LimitCamping {
-  id Int @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   maxUsers  Int
   maxTents  Int
 
@@ -77,6 +81,8 @@ model Pricing {
   season      String
   camping     Camping @relation(fields: [campingId], references: [id])
   campingId   Int
+
+  @@index([campingId])
 }
 
 model Amenity {
@@ -93,4 +99,6 @@ model NearbyAttraction {
   distance  Float    // En kilómetros
   camping   Camping  @relation(fields: [campingId], references: [id])
   campingId Int
+
+  @@index([campingId])
 }
