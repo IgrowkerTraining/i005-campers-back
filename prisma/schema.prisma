@@ -30,7 +30,7 @@ model Reservation {
   updatedAt DateTime @updatedAt
 }
 
-model Camping {
+ model Camping {
   id                Int                @id @default(autoincrement())
   name              String
   description       String
