@@ -4,11 +4,18 @@ import { CampingsModule } from './modules/campings/campings.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CampingsService } from './modules/campings/campings.service';
 import { JwtModule } from '@nestjs/jwt';
+import { CacheModule } from '@nestjs/cache-manager';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { MercadoPagoModule } from './modules/mercado-pago/mercado-pago.module';
+import { jwtConfig } from './config/jwt.config';
+import { redisConfig } from './config/redis.config';
 
 @Module({
   imports: [
+    CacheModule.registerAsync({
+      useFactory: () => redisConfig(),
+      isGlobal: true,
+    }),
     UsersModule,
     CampingsModule,
     AuthModule,
@@ -20,7 +27,6 @@ import { MercadoPagoModule } from './modules/mercado-pago/mercado-pago.module';
         expiresIn: '7d',
       },
     }),
-    MercadoPagoModule,
   ],
   controllers: [],
   providers: [CampingsService],
