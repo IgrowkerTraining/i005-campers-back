@@ -3,10 +3,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CampingResponseDto, CreateCampingDto } from './dto/create-camping.dto';
 import { plainToInstance } from 'class-transformer';
 import { Camping, Prisma } from '@prisma/client';
+import { CampingGateway } from '../webSockets/camping.gateway';
+
 
 @Injectable()
 export class CampingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService,
+    private readonly campingGateway:CampingGateway
+  ) {}
   async findAll() {
     const campings = await this.prisma.camping.findMany({
       include: {
@@ -113,9 +117,13 @@ export class CampingsService {
           limitCamping: true,
         },
       });
+      this.campingGateway.notifyNewCamping(createdCamping);
+
       return plainToInstance(CampingResponseDto, createdCamping, {
         excludeExtraneousValues: false,
       });
     });
+
+
   }
 }

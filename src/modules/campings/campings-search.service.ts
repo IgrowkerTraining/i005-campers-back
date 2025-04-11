@@ -1,11 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+
+import {Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SearchCampingDto } from './dto/search-camping.dto';
 import { Prisma } from '@prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { generateCacheKey } from 'src/common/keyCache.generate';
 
 @Injectable()
 export class CampingSearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   private readonly campingWithDetails = {
     include: {
@@ -25,7 +32,14 @@ export class CampingSearchService {
   async searchCampings(filters: SearchCampingDto) {
     const { name, nearNature, location, pricePerNight, amenityName, country } = filters;
 
-    let where: Prisma.CampingWhereInput = {
+    const cacheKey = generateCacheKey(filters);
+    const resultCache = await this.cacheManager.get(cacheKey);
+
+    if (resultCache) {
+      return resultCache;
+    }
+
+    const where: Prisma.CampingWhereInput = {
       AND: [
         ...(name ? [{ name: { contains: name, mode: 'insensitive' } as Prisma.StringFilter<'Camping'> }] : []),
         ...(nearNature ? [{ nearNature: { hasSome: nearNature } }] : []),
@@ -38,7 +52,7 @@ export class CampingSearchService {
               },
             ]
           : []),
-        ...(pricePerNight ? [{ pricing: { some: { pricePerNight: { equals: Number(pricePerNight) } } } }] : []),
+        ...(pricePerNight ? [{ pricing: { some: { pricePerNight: { equals: Number(pricePernight) } } } }] : []),
         ...(amenityName ? [{ amenities: { some: { name: { equals: amenityName, mode: 'insensitive' } } } }] : []),
       ].filter(Boolean) as any[],
     };
@@ -49,6 +63,9 @@ export class CampingSearchService {
         where,
         skip: ((filters.page || 1) - 1) * (filters.limit || 10),
         take: filters.limit || 10,
+        orderBy: {
+          id: 'asc',
+        },
       }),
       this.prisma.camping.count({ where }),
     ]);
@@ -57,7 +74,7 @@ export class CampingSearchService {
       throw new NotFoundException('No campings found with the specified criteria.');
     }
 
-    return {
+    const result = {
       data: campings,
       pagination: {
         total,
@@ -66,7 +83,11 @@ export class CampingSearchService {
         totalPages: Math.ceil(total / (filters.limit || 10)),
       },
     };
+
+    await this.cacheManager.set(cacheKey, result, 30000);
+    return result;
   }
+
 
   async findNearby(lat: number, lng: number, radius: number, filters: SearchCampingDto) {
     const { name, season, nearNature, pricing, amenities, nearbyAttractions, location, page = 1, limit = 10 } = filters;
