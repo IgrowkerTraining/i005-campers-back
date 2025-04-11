@@ -22,14 +22,6 @@ export class CampingSearchService {
     },
   });
 
-  private async delay() {
-    return new Promise((res, rej) => {
-      setTimeout(() => {
-        res(true);
-      }, 900);
-    });
-  }
-
   async searchCampings(filters: SearchCampingDto) {
     const { location, region, minPrice, maxPrice, amenities, proximityToNature, page = 1, limit = 10 } = filters;
 
@@ -79,8 +71,6 @@ export class CampingSearchService {
         id: 'asc',
       },
     });
-    //visualizar cache
-    await this.delay();
 
     await this.cacheManager.set(cacheKey, result, 30000);
     return result;
