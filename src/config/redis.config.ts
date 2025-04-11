@@ -5,9 +5,7 @@ import { CacheableMemory } from 'cacheable';
 export async function redisConfig() {
   const logger = new Logger('Redis');
   try {
-    const redisStore = createKeyv(
-      'redis://default:pO1dxzciR6xC3w15n4aAQaPhtBd2Ud@redis-15222.c241.us-east-1-4.ec2.redns.redis-cloud.com:15222',
-    );
+    const redisStore = createKeyv('redis://localhost:15222');
 
     await redisStore.set('connection-test', 'ok', 1000);
     logger.log('Conectado a Redis con exito');
