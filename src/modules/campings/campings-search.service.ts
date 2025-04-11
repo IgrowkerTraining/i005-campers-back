@@ -1,5 +1,4 @@
-
-import {Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SearchCampingDto } from './dto/search-camping.dto';
 import { Prisma } from '@prisma/client';
@@ -52,7 +51,7 @@ export class CampingSearchService {
               },
             ]
           : []),
-        ...(pricePerNight ? [{ pricing: { some: { pricePerNight: { equals: Number(pricePernight) } } } }] : []),
+        ...(pricePerNight ? [{ pricing: { some: { pricePerNight: { equals: Number(pricePerNight) } } } }] : []),
         ...(amenityName ? [{ amenities: { some: { name: { equals: amenityName, mode: 'insensitive' } } } }] : []),
       ].filter(Boolean) as any[],
     };
@@ -87,7 +86,6 @@ export class CampingSearchService {
     await this.cacheManager.set(cacheKey, result, 30000);
     return result;
   }
-
 
   async findNearby(lat: number, lng: number, radius: number, filters: SearchCampingDto) {
     const { name, season, nearNature, pricing, amenities, nearbyAttractions, location, page = 1, limit = 10 } = filters;
