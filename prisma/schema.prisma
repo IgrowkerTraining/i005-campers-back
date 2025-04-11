@@ -26,9 +26,12 @@ model Reservation {
   peopleCount Int
   tentsCount  Int
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([campingId])
+  @@index([startDate, endDate])
+  }
 
  model Camping {
   id                Int                @id @default(autoincrement())
@@ -50,8 +53,9 @@ model Reservation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([name])
-  @@index([nearNature])
+  @@index([name]) 
+  @@index([locationId]) 
+  @@index([userId]) 
 }
 
 model LimitCamping {
@@ -74,9 +78,11 @@ model Location {
 model Pricing {
   id            Int     @id @default(autoincrement())
   pricePerNight Float
-  season        String
-  camping       Camping @relation(fields: [campingId], references: [id])
-  campingId     Int
+  season      String
+  camping     Camping @relation(fields: [campingId], references: [id])
+  campingId   Int
+
+  @@index([campingId])
 }
 
 model Amenity {
@@ -93,4 +99,6 @@ model NearbyAttraction {
   distance  Float // En kilómetros
   camping   Camping @relation(fields: [campingId], references: [id])
   campingId Int
+
+  @@index([campingId])
 }
