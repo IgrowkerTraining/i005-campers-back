@@ -2,26 +2,26 @@ generator client {
   provider = "prisma-client-js"
 }
 
-  datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-  }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-  model User {
-    id    String     @id @default(uuid())
-    name  String?
-    email String     @unique
-    password String
-    owner Boolean @default(false)
-    Camping Camping[]
-  }
+model User {
+  id       String    @id @default(uuid())
+  name     String?
+  email    String    @unique
+  password String
+  owner    Boolean   @default(false)
+  campings Camping[]
+}
 
-  model Reservation {
-  id         Int     @id @default(autoincrement())
-  camping    Camping @relation(fields: [campingId], references: [id])
-  campingId  Int
-  startDate  DateTime
-  endDate    DateTime
+model Reservation {
+  id        Int      @id @default(autoincrement())
+  camping   Camping  @relation(fields: [campingId], references: [id])
+  campingId Int
+  startDate DateTime
+  endDate   DateTime
 
   peopleCount Int
   tentsCount  Int
@@ -33,25 +33,25 @@ generator client {
   @@index([startDate, endDate])
   }
 
-model Camping {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String
-  location    Location  @relation(fields: [locationId], references: [id])
-  locationId  Int
-  nearNature  String[] // Ej: ["river", "beach"]
-  pricing     Pricing[]
-  amenities   Amenity[]
+ model Camping {
+  id                Int                @id @default(autoincrement())
+  name              String
+  description       String
+  location          Location           @relation(fields: [locationId], references: [id])
+  locationId        Int
+  nearNature        String[] // Ej: ["river", "beach"]
+  pricing           Pricing[]
+  amenities         Amenity[]
   nearbyAttractions NearbyAttraction[]
-  reservations Reservation[]
+  reservations      Reservation[]
 
-  limitCamping  LimitCamping  @relation(fields: [limitCampingId], references: [id])
-  limitCampingId  Int @unique
+  limitCamping   LimitCamping @relation(fields: [limitCampingId], references: [id])
+  limitCampingId Int          @unique
 
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([name]) 
   @@index([locationId]) 
@@ -59,24 +59,24 @@ model Camping {
 }
 
 model LimitCamping {
-  id        Int        @id @default(autoincrement())
-  maxUsers  Int
-  maxTents  Int
+  id       Int @id @default(autoincrement())
+  maxUsers Int
+  maxTents Int
 
-  camping   Camping?
+  camping Camping?
 }
 
 model Location {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   city        String
   region      String
-  country     String   @default("España")
+  country     String    @default("España")
   coordinates String?
   campings    Camping[]
 }
 
 model Pricing {
-  id          Int     @id @default(autoincrement())
+  id            Int     @id @default(autoincrement())
   pricePerNight Float
   season      String
   camping     Camping @relation(fields: [campingId], references: [id])
@@ -86,18 +86,18 @@ model Pricing {
 }
 
 model Amenity {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  available Boolean  @default(true)
+  available Boolean   @default(true)
   campings  Camping[]
 }
 
 model NearbyAttraction {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   name      String
-  type      String   // "playa", "montaña", "parque-nacional", etc.
-  distance  Float    // En kilómetros
-  camping   Camping  @relation(fields: [campingId], references: [id])
+  type      String // "playa", "montaña", "parque-nacional", etc.
+  distance  Float // En kilómetros
+  camping   Camping @relation(fields: [campingId], references: [id])
   campingId Int
 
   @@index([campingId])
