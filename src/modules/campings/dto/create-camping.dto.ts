@@ -125,9 +125,9 @@ class AmenityDto {
   available?: boolean;
 
   // Validación personalizada para asegurar que o tiene id o name
-  @ValidateIf((o) => !o.id && !o.name)
-  @IsNotEmpty({ message: 'Debe proporcionar id o name' })
-  _?: never;
+  // @ValidateIf((o) => !o.id && !o.name)
+  // @IsNotEmpty({ message: 'Debe proporcionar id o name' })
+  // _?: never;
 }
 
 class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> {
