@@ -6,6 +6,7 @@ import { CampingsService } from './modules/campings/campings.service';
 import { JwtModule } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { MercadoPagoModule } from './modules/mercado-pago/mercado-pago.module';
 import { jwtConfig } from './config/jwt.config';
 import { redisConfig } from './config/redis.config';
 
@@ -19,6 +20,7 @@ import { redisConfig } from './config/redis.config';
     CampingsModule,
     AuthModule,
     ReservationsModule,
+    MercadoPagoModule,
     JwtModule.register(jwtConfig()),
   ],
   controllers: [],
