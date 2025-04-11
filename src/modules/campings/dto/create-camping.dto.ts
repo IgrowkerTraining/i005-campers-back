@@ -70,11 +70,6 @@ class AmenityDto {
   @IsOptional()
   @IsBoolean()
   available?: boolean;
-
-  // // Validación personalizada para asegurar que o tiene id o name
-  // @ValidateIf((o) => !o.id && !o.name)
-  // @IsNotEmpty({ message: 'Debe proporcionar id o name' })
-  // _?: never;
 }
 
 class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> {
@@ -92,12 +87,6 @@ class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> 
   @IsNotEmpty()
   @IsNumber()
   distance: number;
-
-  // @ApiProperty({ type: () => [NearbyAttractionDto] }) // <-- Array faltante
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // nearbyAttractions?: NearbyAttractionDto[]; // <-- Cambiado de Dto a Dto[]
 }
 
 export class CreateCampingDto {
@@ -134,12 +123,6 @@ export class CreateCampingDto {
   @IsArray()
   @ValidateNested({ each: true })
   amenities?: AmenityDto[];
-
-  // @ApiProperty({ type: NearbyAttractionDto })
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // nearbyAttractions?: NearbyAttractionDto;
 
   @ApiProperty({ type: () => [NearbyAttractionDto] }) // <-- Array faltante
   @IsOptional()
@@ -188,16 +171,6 @@ export class CampingResponseDto {
   @Exclude()
   userId: string;
 
-  // @Expose()
-  // nearNature: string[];
-
-  // @Expose()
-  // nearbyAttractions: {
-  //   name: string;
-  //   type: string;
-  //   distance: number;
-  // }[];
-
   @Expose()
   @ApiProperty({ type: () => [String] })
   nearNature: string[];
@@ -215,29 +188,13 @@ export class CampingResponseDto {
     season: string;
   };
 
-  // @Expose()
-  // amenities: string[];
   @Expose()
   @ApiProperty({ type: () => [AmenityDto] }) // <-- Para arrays
   amenities: string[];
-
-  // @Expose()
-  // limitCamping: {
-  //   maxTents: number;
-  //   maxUsers: number;
-  // };
-
+  K;
   @Exclude()
   limitCampingId: number;
 
-  // @Expose()
-  // @ApiProperty({ type: () => LocationDto })
-  // location: {
-  //   city: string;
-  //   region: string;
-  //   country: string;
-  //   coordinates: string; // O el tipo correcto
-  // };
   @Expose()
   @ApiProperty({ type: () => LocationDto })
   location: LocationDto;
