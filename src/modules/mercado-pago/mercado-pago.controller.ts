@@ -1,34 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Query, ParseIntPipe, BadRequestException } from '@nestjs/common';
 import { MercadoPagoService } from './mercado-pago.service';
-import { CreateMercadoPagoDto } from './dto/create-mercado-pago.dto';
-import { UpdateMercadoPagoDto } from './dto/update-mercado-pago.dto';
 
-@Controller('mercado-pago')
+
+@Controller('payment')
 export class MercadoPagoController {
   constructor(private readonly mercadoPagoService: MercadoPagoService) {}
 
-  @Post()
-  create(@Body() createMercadoPagoDto: CreateMercadoPagoDto) {
-    return this.mercadoPagoService.create(createMercadoPagoDto);
-  }
 
   @Get()
-  findAll() {
-    return this.mercadoPagoService.findAll();
-  }
+  async createUrlPayment(@Query('price', ParseIntPipe) price: number) {
+    try {
+      if (price <= 0) {
+        throw new BadRequestException('Price must be greater than 0');
+      }
+      return await this.mercadoPagoService.createUrlPayment(price);
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.mercadoPagoService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMercadoPagoDto: UpdateMercadoPagoDto) {
-    return this.mercadoPagoService.update(+id, updateMercadoPagoDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mercadoPagoService.remove(+id);
+    } catch (error) {
+      throw new BadRequestException(`Error creating payment with Mercado Pago: ${error}`);
+      
+    }
   }
 }
