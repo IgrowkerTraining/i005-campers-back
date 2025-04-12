@@ -23,12 +23,18 @@ export class CampingsSearchController {
     },
   })
   @ApiQuery({ name: 'name', required: false, type: String })
-  @ApiQuery({ name: 'season', required: false, enum: ['verano', 'invierno', 'primavera', 'otono'] })
+  @ApiQuery({ name: 'pricePerNight', required: false, type: Number })
   @ApiQuery({ name: 'nearNature', required: false, isArray: true, type: String })
+  @ApiQuery({ name: 'amenityName', required: false, type: String })
+  @ApiQuery({ name: 'city', required: false, type: String })
+  @ApiQuery({ name: 'region', required: false, type: String })
+  @ApiQuery({ name: 'country', required: false, type: String })
+  @ApiQuery({ name: 'nearbyCampingName', required: false, type: String })
+  @ApiQuery({ name: 'lat', required: false, type: Number })
+  @ApiQuery({ name: 'lng', required: false, type: Number })
+  @ApiQuery({ name: 'radius', required: false, type: Number })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'amenityName', required: false, type: String })
-  @ApiQuery({ name: 'country', required: false, type: String })
   async search(@Query() searchParams: SearchCampingDto) {
     try {
       return await this.searchService.searchCampings(searchParams);
@@ -38,19 +44,5 @@ export class CampingsSearchController {
       }
       throw error; // Re-lanza otros errores inesperados
     }
-  }
-
-  @Get('nearby')
-  @ApiOkResponse({ description: 'Returns nearby campings within radius' })
-  @ApiQuery({ name: 'lat', required: true, type: Number })
-  @ApiQuery({ name: 'lng', required: true, type: Number })
-  @ApiQuery({ name: 'radius', required: false, type: Number })
-  async nearby(
-    @Query('lat') lat: number,
-    @Query('lng') lng: number,
-    @Query('radius') radius: number = 10,
-    @Query() searchParams: SearchCampingDto,
-  ) {
-    return this.searchService.findNearby(lat, lng, radius, searchParams);
   }
 }

@@ -20,6 +20,7 @@ export class CampingSearchService {
           city: true,
           region: true,
           country: true,
+          coordinates: true,
         },
       },
       pricing: true,
@@ -29,7 +30,7 @@ export class CampingSearchService {
   };
 
   async searchCampings(filters: SearchCampingDto) {
-    const { name, nearNature, location, pricePerNight, amenityName, country } = filters;
+    let { name, nearNature, location, pricing, amenities, lat, lng, radius, nearbyCampingName } = filters;
 
     const cacheKey = generateCacheKey(filters);
     const resultCache = await this.cacheManager.get(cacheKey);
@@ -38,30 +39,75 @@ export class CampingSearchService {
       return resultCache;
     }
 
-    const where: Prisma.CampingWhereInput = {
+    let where: Prisma.CampingWhereInput = {
       AND: [
-        ...(name ? [{ name: { contains: name, mode: 'insensitive' } as Prisma.StringFilter<'Camping'> }] : []),
-        ...(nearNature ? [{ nearNature: { hasSome: nearNature } }] : []),
-        ...(location?.country
-          ? [
-              {
-                location: {
-                  country: { equals: location.country, mode: 'insensitive' } as Prisma.StringFilter<'Location'>,
-                },
-              },
-            ]
+        ...(filters.pricePerNight ? [{ pricing: { some: { pricePerNight: Number(filters.pricePerNight) } } }] : []),
+        ...(filters.city ? [{ location: { city: { equals: filters.city, mode: 'insensitive' } } }] : []),
+        ...(filters.region ? [{ location: { region: { equals: filters.region, mode: 'insensitive' } } }] : []),
+        ...(filters.country ? [{ location: { country: { equals: filters.country, mode: 'insensitive' } } }] : []),
+        ...(filters.amenities
+          ? [{ amenities: { some: { name: { equals: filters.amenities, mode: 'insensitive' } } } }]
           : []),
-        ...(pricePerNight ? [{ pricing: { some: { pricePerNight: { equals: Number(pricePerNight) } } } }] : []),
-        ...(amenityName ? [{ amenities: { some: { name: { equals: amenityName, mode: 'insensitive' } } } }] : []),
-      ].filter(Boolean) as any[],
+        ...(nearNature
+          ? !Array.isArray(nearNature)
+            ? [{ nearNature: { hasSome: [nearNature] } }]
+            : nearNature.length > 0
+              ? [{ nearNature: { hasEvery: nearNature } }]
+              : []
+          : []),
+        ...(filters.nearbyAttractions
+          ? [{ nearbyAttractions: { some: { name: { equals: filters.nearbyAttractions, mode: 'insensitive' } } } }]
+          : []),
+      ].filter(Boolean) as Prisma.CampingWhereInput[],
     };
+
+    if (nearbyCampingName) {
+      const nearbyCamping = await this.prisma.camping.findFirst({
+        where: {
+          name: {
+            equals: nearbyCampingName,
+            mode: 'insensitive',
+          },
+        },
+        include: {
+          location: true,
+        },
+      });
+
+      if (!nearbyCamping) {
+        throw new NotFoundException(`Camping with name "${nearbyCampingName}" not found.`);
+      }
+
+      if (!nearbyCamping.location?.coordinates) {
+        throw new NotFoundException(`Camping with name "${nearbyCampingName}" does not have coordinates.`);
+      }
+
+      const coordinates = JSON.parse(nearbyCamping.location.coordinates);
+      lat = coordinates.lat;
+      lng = coordinates.lng;
+    }
+
+    if (lat !== undefined && lng !== undefined && radius !== undefined) {
+      where = {
+        AND: [
+          ...(Array.isArray(where.AND) ? where.AND : [where.AND]),
+          {
+            location: {
+              coordinates: {
+                contains: `{"lat":${lat},"lng":${lng}}`,
+              },
+            },
+          },
+        ],
+      };
+    }
 
     const [campings, total] = await Promise.all([
       this.prisma.camping.findMany({
         ...this.campingWithDetails,
         where,
-        skip: ((filters.page || 1) - 1) * (filters.limit || 10),
-        take: filters.limit || 10,
+        skip: ((Number(filters.page) || 1) - 1) * (Number(filters.limit) || 10),
+        take: Number(filters.limit) || 10,
         orderBy: {
           id: 'asc',
         },
@@ -73,109 +119,33 @@ export class CampingSearchService {
       throw new NotFoundException('No campings found with the specified criteria.');
     }
 
+    const transformedCampings = campings.map((camping) => ({
+      id: camping.id,
+      name: camping.name,
+      description: camping.description,
+      location: {
+        ...camping.location,
+        coordinates: camping.location.coordinates, // Include coordinates in the location object
+      },
+      pricing: camping.pricing,
+      amenities: camping.amenities,
+      nearNature: camping.nearNature,
+      nearbyAttractions: camping.nearbyAttractions,
+      createdAt: camping.createdAt ? new Date(camping.createdAt).toLocaleDateString('en-CA') : null,
+      updatedAt: camping.updatedAt ? new Date(camping.updatedAt).toLocaleDateString('en-CA') : null,
+    }));
+
     const result = {
-      data: campings,
+      data: transformedCampings,
       pagination: {
         total,
-        page: filters.page || 1,
-        limit: filters.limit || 10,
-        totalPages: Math.ceil(total / (filters.limit || 10)),
+        page: Number(filters.page) || 1,
+        limit: Number(filters.limit) || 10,
+        totalPages: Math.ceil(total / (Number(filters.limit) || 10)),
       },
     };
 
     await this.cacheManager.set(cacheKey, result, 30000);
     return result;
-  }
-
-  async findNearby(lat: number, lng: number, radius: number, filters: SearchCampingDto) {
-    const { name, season, nearNature, pricing, amenities, nearbyAttractions, location, page = 1, limit = 10 } = filters;
-
-    const earthRadiusKm = 6371; // Radio de la Tierra en kilómetros
-    const latitudRad = (lat * Math.PI) / 180;
-    const longitudRad = (lng * Math.PI) / 180;
-
-    const where: Prisma.CampingWhereInput = {
-      ...(name && { name: { contains: name, mode: 'insensitive' } }),
-      ...(season && {
-        pricing: {
-          some: {
-            season: { equals: season, mode: 'insensitive' },
-          },
-        },
-      }),
-      ...(nearNature?.length && { nearNature: { hasSome: nearNature } }),
-      ...(pricing?.length && {
-        pricing: {
-          some: {
-            OR: pricing.map((p) => ({
-              pricePerNight: p.pricePerNight ? { equals: p.pricePerNight } : undefined,
-              season: p.season ? { equals: season, mode: 'insensitive' } : undefined,
-            })),
-          },
-        },
-      }),
-      ...(amenities?.length && {
-        amenities: {
-          some: {
-            OR: amenities.map((a) => ({
-              name: a.name ? { equals: a.name, mode: 'insensitive' } : undefined,
-              available: a.available !== undefined ? { equals: a.available } : undefined,
-            })),
-          },
-        },
-      }),
-      ...(nearbyAttractions?.length && {
-        nearbyAttractions: {
-          some: {
-            OR: nearbyAttractions.map((att) => ({
-              name: att.name ? { contains: att.name, mode: 'insensitive' } : undefined,
-              type: att.type ? { equals: att.type, mode: 'insensitive' } : undefined,
-              distance: att.distance ? { lte: att.distance } : undefined,
-            })),
-          },
-        },
-      }),
-      ...(location &&
-        location.city && {
-          location: {
-            city: { contains: location.city, mode: 'insensitive' },
-          },
-        }),
-      ...(location &&
-        location.region && {
-          location: {
-            region: { contains: location.region, mode: 'insensitive' },
-          },
-        }),
-      ...(location &&
-        location.country && {
-          location: {
-            country: { equals: location.country, mode: 'insensitive' },
-          },
-        }),
-      location: {
-        coordinates: { contains: `{"lat":${lat},"lng":${lng}}` },
-      },
-    };
-
-    const [campings, total] = await Promise.all([
-      this.prisma.camping.findMany({
-        ...this.campingWithDetails,
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.camping.count({ where }),
-    ]);
-
-    return {
-      data: campings,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
   }
 }
