@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CreateCampingDto } from './dto/create-camping.dto';
 import { CampingsService } from './campings.service';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
@@ -16,8 +16,11 @@ export class CampingsController {
   }
 
   @Get()
-  async findAll() {
-    return await this.campingsService.findAll();
+  async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    return this.campingsService.findAll(pageNumber, limitNumber);
   }
 
   @Delete(':id')
