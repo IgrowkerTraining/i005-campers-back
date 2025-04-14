@@ -1,7 +1,14 @@
 import { IsOptional, IsString, IsNumber, Min, Max, IsArray, IsIn, ValidateNested, IsBoolean } from 'class-validator';
-import { Exclude, Transform, Type } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
+class LimitCampingDto {
+  @ApiProperty()
+  maxTents: number;
+
+  @ApiProperty()
+  maxUsers: number;
+}
 export class LocationDto {
   @ApiProperty({ required: false, description: 'Ciudad de la ubicación' })
   @IsOptional()
@@ -17,6 +24,11 @@ export class LocationDto {
   @IsOptional()
   @IsString()
   country?: string;
+
+  @ApiProperty({ required: false, description: 'Coordenadas de la ubicación' })
+  @IsOptional()
+  @IsString()
+  coordinates?: string;
 }
 
 export class PricingDto {
@@ -75,10 +87,6 @@ export class SearchCampingDto {
   @Transform(({ value }) => Number(value))
   pricePerNight?: number;
 
-  @ApiProperty({ required: false, description: 'Temporada del precio' })
-  @IsString()
-  season: string;
-
   @ApiProperty({ required: false, type: LocationDto, description: 'Ubicación del camping' })
   @IsOptional()
   @ValidateNested()
@@ -100,10 +108,10 @@ export class SearchCampingDto {
   @IsString()
   country?: string;
 
-  @ApiProperty({ required: false, description: 'Nombre del servicio específico a buscar' })
+  @ApiProperty({ required: false, description: 'Coordenadas de la ubicación' })
   @IsOptional()
   @IsString()
-  amenityName?: string;
+  coordinates?: string;
 
   @ApiProperty({ required: false, type: [AmenityDto], description: 'Servicios disponibles' })
   @IsOptional()
@@ -116,7 +124,6 @@ export class SearchCampingDto {
   @IsOptional()
   @IsString({ each: true })
   @IsArray()
-  // @ValidateNested({ each: true })
   nearNature?: string[];
 
   @ApiProperty({ required: false, type: [NearbyAttractionDto], description: 'Atracciones cercanas' })
@@ -144,11 +151,6 @@ export class SearchCampingDto {
   @Transform(({ value }) => Number(value))
   radius?: number;
 
-  @ApiProperty({ required: false, description: 'Nombre del camping cercano' })
-  @IsOptional()
-  @IsString()
-  nearbyCampingName?: string;
-
   @ApiProperty({ required: false, description: 'Número de página' })
   @IsOptional()
   @IsNumber()
@@ -163,4 +165,64 @@ export class SearchCampingDto {
   @Max(100)
   @Transform(({ value }) => Number(value))
   limit?: number = 10;
+}
+
+export class CampingResponseDto {
+  @Expose()
+  id: number;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  description: string;
+
+  @Exclude()
+  @Transform(({ value }) => {
+    const date = typeof value === 'string' ? new Date(value) : value;
+    return date ? date.toISOString().split('T')[0] : null;
+  })
+  createdAt: Date | string;
+
+  @Exclude()
+  @Transform(({ value }) => {
+    const date = typeof value === 'string' ? new Date(value) : value;
+    return date ? date.toISOString().split('T')[0] : null;
+  })
+  updatedAt: Date | string;
+
+  @Exclude()
+  userId: string;
+
+  @Expose()
+  @ApiProperty({ type: () => [String] })
+  nearNature: string[];
+
+  @Expose()
+  @ApiProperty({ type: () => [NearbyAttractionDto] })
+  nearbyAttractions: NearbyAttractionDto[];
+
+  @Exclude()
+  locationId: number;
+
+  @Expose()
+  pricing: {
+    pricePerNight: number;
+    season: string;
+  };
+
+  @Expose()
+  @ApiProperty({ type: () => [AmenityDto] })
+  amenities: string[];
+
+  @Exclude()
+  limitCampingId: number;
+
+  @Expose()
+  @ApiProperty({ type: () => LocationDto })
+  location: LocationDto;
+
+  @Expose()
+  @ApiProperty({ type: () => LimitCampingDto })
+  limitCamping: LimitCampingDto;
 }

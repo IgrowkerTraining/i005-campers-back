@@ -1,10 +1,20 @@
-import { Controller, Get, Query, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+  UseInterceptors,
+  ClassSerializerInterceptor,
+} from '@nestjs/common';
 import { CampingSearchService } from './campings-search.service';
 import { SearchCampingDto } from './dto/search-camping.dto';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Campings - Search')
 @Controller('campings/search')
+@UseInterceptors(ClassSerializerInterceptor)
 export class CampingsSearchController {
   constructor(private readonly searchService: CampingSearchService) {}
 
@@ -29,10 +39,8 @@ export class CampingsSearchController {
   @ApiQuery({ name: 'city', required: false, type: String })
   @ApiQuery({ name: 'region', required: false, type: String })
   @ApiQuery({ name: 'country', required: false, type: String })
-  @ApiQuery({ name: 'nearbyCampingName', required: false, type: String })
   @ApiQuery({ name: 'lat', required: false, type: Number })
   @ApiQuery({ name: 'lng', required: false, type: Number })
-  @ApiQuery({ name: 'radius', required: false, type: Number })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async search(@Query() searchParams: SearchCampingDto) {
@@ -42,7 +50,20 @@ export class CampingsSearchController {
       if (error instanceof NotFoundException) {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       }
-      throw error; // Re-lanza otros errores inesperados
+      throw error;
     }
+  }
+  @Get('nearby')
+  @ApiOkResponse({ description: 'Returns nearby campings within radius' })
+  @ApiQuery({ name: 'lat', required: true, type: Number })
+  @ApiQuery({ name: 'lng', required: true, type: Number })
+  @ApiQuery({ name: 'radius', required: false, type: Number })
+  async nearby(
+    @Query('lat') lat: number,
+    @Query('lng') lng: number,
+    @Query('radius') radius: number = 10,
+    @Query() searchParams: SearchCampingDto,
+  ) {
+    return this.searchService.findNearby(lat, lng, radius, searchParams);
   }
 }
