@@ -7,15 +7,10 @@ import {
   IsBoolean,
   IsUrl,
   ValidateNested,
-  ArrayMinSize,
-  IsDateString,
   IsIn,
   ValidateIf,
-  IsDate,
-  IsJSON,
-  isNotEmpty,
 } from 'class-validator';
-import { Amenity, Location, NearbyAttraction, Pricing, Prisma, User } from '@prisma/client';
+import { Location, NearbyAttraction, Pricing } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform } from 'class-transformer';
 
@@ -62,7 +57,7 @@ class AmenityDto {
 
   @ApiProperty()
   @IsOptional()
-  @ValidateIf((o) => !o.id) // Requerido si no hay id
+  @ValidateIf((o) => !o.id)
   @IsString()
   name?: string;
 
@@ -124,7 +119,7 @@ export class CreateCampingDto {
   @ValidateNested({ each: true })
   amenities?: AmenityDto[];
 
-  @ApiProperty({ type: () => [NearbyAttractionDto] }) // <-- Array faltante
+  @ApiProperty({ type: () => [NearbyAttractionDto] })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -161,11 +156,21 @@ export class CampingResponseDto {
   description: string;
 
   @Expose()
-  @Transform(({ value }) => value.toISOString().split('T')[0])
+  @Transform(({ value }) => {
+    if (value instanceof Date) {
+      return value.toISOString().split('T')[0];
+    }
+    return value;
+  })
   createdAt: Date;
 
   @Expose()
-  @Transform(({ value }) => value.toISOString().split('T')[0])
+  @Transform(({ value }) => {
+    if (value instanceof Date) {
+      return value.toISOString().split('T')[0];
+    }
+    return value;
+  })
   updatedAt: Date;
 
   @Exclude()
@@ -189,9 +194,9 @@ export class CampingResponseDto {
   };
 
   @Expose()
-  @ApiProperty({ type: () => [AmenityDto] }) // <-- Para arrays
+  @ApiProperty({ type: () => [AmenityDto] })
   amenities: string[];
-  K;
+
   @Exclude()
   limitCampingId: number;
 
@@ -202,4 +207,17 @@ export class CampingResponseDto {
   @Expose()
   @ApiProperty({ type: () => LimitCampingDto })
   limitCamping: LimitCampingDto;
+}
+
+export class PaginatedResponseDto<T> {
+  @Expose()
+  data: T[];
+
+  @Expose()
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
