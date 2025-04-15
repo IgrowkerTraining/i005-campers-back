@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Reservation } from '@prisma/client';
 
-export class CreateReservationDto implements Omit<Reservation, 'id' | 'createdAt' | 'updatedAt'> {
+export class CreateReservationDto
+  implements Omit<Reservation, 'id' | 'createdAt' | 'updatedAt' | 'cancelledAt' | 'status'>
+{
+  userId: string;
   campingId: number;
   peopleCount: number;
   tentsCount: number;

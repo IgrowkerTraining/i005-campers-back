@@ -5,6 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { LimitCamping, Reservation } from '@prisma/client';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
 
 interface ReservationDataType {
   campingId: number;
@@ -68,7 +69,12 @@ export class ReservationsService {
     this.cacheManager.del(`${this.cachePrefixKey}${campingId}`);
 
     return this.prisma.reservation.create({
-      data: { ...createReservationDto, startDate: setStartDate, endDate: setEndDate },
+      data: {
+        ...createReservationDto,
+        startDate: setStartDate,
+        endDate: setEndDate,
+        status: RESERVATION_STATUS.PENDING,
+      },
     });
   }
 
@@ -115,6 +121,9 @@ export class ReservationsService {
         },
         endDate: {
           gte: new Date(startDate).toISOString(),
+        },
+        status: {
+          not: RESERVATION_STATUS.CANCELLED,
         },
       },
     });
