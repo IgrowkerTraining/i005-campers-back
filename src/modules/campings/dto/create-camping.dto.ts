@@ -10,45 +10,36 @@ import {
   IsIn,
   ValidateIf,
 } from 'class-validator';
-import { Location, NearbyAttraction, Pricing } from '@prisma/client';
+import { Amenity, Location, Pricing } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
-import { Exclude, Expose, Transform } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
-class LimitCampingDto {
+class LocationDto {
   @ApiProperty()
-  maxTents: number;
+  @IsNotEmpty()
+  @IsString()
+  campingAddress: string;
 
   @ApiProperty()
-  maxUsers: number;
+  @IsNotEmpty()
+  @IsString()
+  @IsUrl()
+  mapLink: string;
 }
 
-class LocationDto implements Omit<Location, 'id'> {
-  @ApiProperty()
-  city: string;
-
-  @ApiProperty()
-  region: string;
-
-  @ApiProperty()
-  country: string;
-
-  @ApiProperty()
-  @IsOptional()
-  coordinates: string;
-}
-
-class PricingDto implements Omit<Pricing, 'id' | 'campingId'> {
+class PricingDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
   pricePerNight: number;
 
-  @ApiProperty()
+  @ApiProperty({ required: true, description: 'Tipo de precio' })
   @IsNotEmpty()
   @IsString()
-  @IsIn(['Primavera', 'Verano', 'Otono', 'Invierno'])
-  season: string;
+  @IsIn(['carpa', 'vehiculo', 'paseDiario'])
+  tarifa: string;
 }
+
 class AmenityDto {
   @ApiProperty()
   @IsOptional()
@@ -67,28 +58,38 @@ class AmenityDto {
   available?: boolean;
 }
 
-class NearbyAttractionDto implements Omit<NearbyAttraction, 'id' | 'campingId'> {
+class MediaDto {
+  @IsUrl()
+  url: string;
+
+  @IsIn(['image', 'video'])
+  type: string;
+}
+
+class NearbyAttractionDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   name: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  type: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  distance: number;
 }
 
+class LimitCampingDto {
+  @ApiProperty()
+  maxTents: number;
+
+  @ApiProperty()
+  maxUsers: number;
+}
 export class CreateCampingDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  @ApiProperty({ type: LocationDto })
+  @IsNotEmpty()
+  @ValidateNested()
+  location: LocationDto;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -96,22 +97,21 @@ export class CreateCampingDto {
   description: string;
 
   @ApiProperty()
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  nearNature?: string[];
+  @IsNotEmpty()
+  @IsString()
+  contactPhone: string;
 
-  @ApiProperty()
-  @IsOptional()
-  @IsArray()
-  @IsUrl({}, { each: true })
-  photos?: string[];
-
-  @ApiProperty({ type: PricingDto })
-  @IsOptional()
+  @ApiProperty({ type: MediaDto })
+  @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
-  pricing?: PricingDto;
+  media: MediaDto[];
+
+  @ApiProperty({ type: PricingDto })
+  @IsNotEmpty()
+  @IsArray()
+  @ValidateNested({ each: true })
+  pricing: PricingDto;
 
   @ApiProperty({ type: AmenityDto })
   @IsOptional()
@@ -138,11 +138,6 @@ export class CreateCampingDto {
     maxTents: number;
     maxUsers: number;
   };
-
-  @ApiProperty({ type: LocationDto })
-  @IsNotEmpty()
-  @ValidateNested()
-  location: Location;
 }
 
 export class CampingResponseDto {
@@ -154,6 +149,43 @@ export class CampingResponseDto {
 
   @Expose()
   description: string;
+
+  @Expose()
+  @ApiProperty({ type: () => LocationDto })
+  location: LocationDto;
+
+  @Expose()
+  contactPhone: string;
+
+  @Expose()
+  media: MediaDto[];
+
+  @Expose()
+  pricing: PricingDto;
+
+  @Expose()
+  @ApiProperty({ type: () => [AmenityDto] })
+  amenities: string[];
+
+  @Expose()
+  @ApiProperty({ type: () => LimitCampingDto })
+  limitCamping: LimitCampingDto;
+
+  @Exclude()
+  userId: string;
+
+  @Exclude()
+  campingId: number;
+
+  @Expose()
+  @ApiProperty({ type: () => [NearbyAttractionDto] })
+  nearbyAttractions: NearbyAttractionDto[];
+
+  @Exclude()
+  locationId: number;
+
+  @Exclude()
+  limitCampingId: number;
 
   @Expose()
   @Transform(({ value }) => {
@@ -172,41 +204,6 @@ export class CampingResponseDto {
     return value;
   })
   updatedAt: Date;
-
-  @Exclude()
-  userId: string;
-
-  @Expose()
-  @ApiProperty({ type: () => [String] })
-  nearNature: string[];
-
-  @Expose()
-  @ApiProperty({ type: () => [NearbyAttractionDto] })
-  nearbyAttractions: NearbyAttractionDto[];
-
-  @Exclude()
-  locationId: number;
-
-  @Expose()
-  pricing: {
-    pricePerNight: number;
-    season: string;
-  };
-
-  @Expose()
-  @ApiProperty({ type: () => [AmenityDto] })
-  amenities: string[];
-
-  @Exclude()
-  limitCampingId: number;
-
-  @Expose()
-  @ApiProperty({ type: () => LocationDto })
-  location: LocationDto;
-
-  @Expose()
-  @ApiProperty({ type: () => LimitCampingDto })
-  limitCamping: LimitCampingDto;
 }
 
 export class PaginatedResponseDto<T> {

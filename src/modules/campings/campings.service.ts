@@ -19,14 +19,8 @@ export class CampingsService {
         skip,
         take: limit,
         include: {
-          location: {
-            select: {
-              city: true,
-              region: true,
-              country: true,
-              coordinates: true,
-            },
-          },
+          location: true,
+          media: true,
           pricing: true,
           amenities: true,
           nearbyAttractions: true,
@@ -62,6 +56,8 @@ export class CampingsService {
           pricing: true,
           amenities: true,
           nearbyAttractions: true,
+          limitCamping: true,
+          media: true,
         },
       });
 
@@ -73,6 +69,7 @@ export class CampingsService {
         this.prisma.pricing.deleteMany({ where: { campingId: id } }),
         this.prisma.nearbyAttraction.deleteMany({ where: { campingId: id } }),
         this.prisma.amenity.deleteMany({ where: { campings: { some: { id } } } }),
+        this.prisma.media.deleteMany({ where: { campingId: id } }),
         this.prisma.camping.delete({ where: { id } }),
       ]);
 
@@ -121,13 +118,26 @@ export class CampingsService {
               };
             }),
           },
+          media: {
+            create: data.media.map((mediaDto) => ({
+              url: mediaDto.url,
+              type: mediaDto.type,
+            })),
+          },
+
           nearbyAttractions: { create: nearbyAttractions },
           limitCamping: { create: { maxTents: limitCamping.maxTents, maxUsers: limitCamping.maxUsers } },
         },
         include: {
-          location: true,
-          pricing: true,
+          location: false,
+          pricing: {
+            select: {
+              pricePerNight: true,
+              campingId: false,
+            },
+          },
           amenities: true,
+          media: true,
           nearbyAttractions: true,
           limitCamping: true,
         },
@@ -135,7 +145,7 @@ export class CampingsService {
       this.campingGateway.notifyNewCamping(createdCamping);
 
       return plainToInstance(CampingResponseDto, createdCamping, {
-        excludeExtraneousValues: false,
+        excludeExtraneousValues: true,
       });
     });
   }
