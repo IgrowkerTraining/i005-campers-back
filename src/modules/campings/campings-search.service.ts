@@ -20,6 +20,7 @@ export class CampingSearchService {
       pricing: true,
       amenities: true,
       nearbyAttractions: true,
+      media: true,
       limitCamping: true,
     },
   };
@@ -106,6 +107,7 @@ export class CampingSearchService {
       description: camping.description,
       location: camping.location,
       contactPhone: camping.contactPhone,
+      media: camping.media,
       pricing: camping.pricing,
       amenities: camping.amenities,
       nearbyAttractions: camping.nearbyAttractions,
