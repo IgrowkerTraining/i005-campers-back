@@ -48,7 +48,6 @@ class AmenityDto {
 
   @ApiProperty()
   @IsOptional()
-  @ValidateIf((o) => !o.id)
   @IsString()
   name?: string;
 

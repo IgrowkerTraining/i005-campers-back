@@ -129,7 +129,7 @@ export class CampingsService {
           limitCamping: { create: { maxTents: limitCamping.maxTents, maxUsers: limitCamping.maxUsers } },
         },
         include: {
-          location: false,
+          location: true,
           pricing: {
             select: {
               pricePerNight: true,
