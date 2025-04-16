@@ -22,12 +22,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd i005-campers-back
+          # cd i005-campers-back
           npm install
 
       - name: Build NestJS project
         run: |
-          cd i005-campers-back
+          # cd i005-campers-back
           npm run build
 
       - name: Docker build image
