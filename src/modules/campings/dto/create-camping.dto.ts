@@ -13,11 +13,13 @@ import {
 import { Amenity, Location, Pricing } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
-
+import { IsSanitizedHtml } from 'src/decorators/is-sanitizated-html.decorator';
+import { SANITIZE_CONFIG, SANITIZE_RICH_TEXT_CONFIG } from 'src/config/sanitize.config';
 class LocationDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   campingAddress: string;
 
   @ApiProperty()
@@ -49,6 +51,7 @@ class AmenityDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   name?: string;
 
   @ApiProperty()
@@ -69,20 +72,25 @@ class NearbyAttractionDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   name: string;
 }
 
 class LimitCampingDto {
   @ApiProperty()
+  @IsNumber()
   maxTents: number;
 
+  
   @ApiProperty()
+  @IsNumber()
   maxUsers: number;
 }
 export class CreateCampingDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   name: string;
 
   @ApiProperty({ type: LocationDto })
@@ -93,6 +101,7 @@ export class CreateCampingDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_RICH_TEXT_CONFIG)
   description: string;
 
   @ApiProperty()
