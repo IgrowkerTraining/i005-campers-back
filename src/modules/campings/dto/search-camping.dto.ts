@@ -13,11 +13,14 @@ import {
 } from 'class-validator';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsSanitizedHtml } from 'src/decorators/is-sanitizated-html.decorator';
+import { SANITIZE_CONFIG } from 'src/config/sanitize.config';
 
 export class LocationDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   campingAddress: string;
 
   @ApiProperty()
@@ -44,6 +47,7 @@ export class AmenityDto {
   @ApiProperty({ required: false, description: 'Nombre del servicio' })
   @IsOptional()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   name?: string;
 
   @ApiProperty({ required: false, description: 'Disponibilidad del servicio' })
@@ -63,6 +67,7 @@ class MediaDto {
 export class NearbyAttractionDto {
   @ApiProperty({ required: true, description: 'Nombre de la atracción cercana' })
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   name: string;
 }
 
@@ -106,6 +111,7 @@ export class SearchCampingDto {
   @ApiProperty({ required: false, description: 'Direccion del camping' })
   @IsOptional()
   @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
   campingAddress?: string;
 
   @ApiProperty({ required: false, description: 'Link del mapa con la ubicacion del camping' })
