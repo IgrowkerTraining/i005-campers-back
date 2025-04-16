@@ -40,7 +40,7 @@ jobs:
 
       - name: Docker build image
         run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }} .
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/campers-back .
 
       - name: Push Docker image to Artifact Registry
         run: |
