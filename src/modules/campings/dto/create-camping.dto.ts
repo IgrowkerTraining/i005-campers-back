@@ -101,10 +101,10 @@ export class CreateCampingDto {
   contactPhone: string;
 
   @ApiProperty({ type: MediaDto })
-  @IsNotEmpty()
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  media: MediaDto[];
+  media?: MediaDto[];
 
   @ApiProperty({ type: PricingDto })
   @IsNotEmpty()
