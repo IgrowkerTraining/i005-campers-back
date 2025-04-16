@@ -81,7 +81,6 @@ class LimitCampingDto {
   @IsNumber()
   maxTents: number;
 
-  
   @ApiProperty()
   @IsNumber()
   maxUsers: number;
@@ -141,7 +140,7 @@ export class CreateCampingDto {
     },
   })
   @IsNotEmpty()
-  @ValidateNested()
+  // @ValidateNested()
   limitCamping: {
     maxTents: number;
     maxUsers: number;
