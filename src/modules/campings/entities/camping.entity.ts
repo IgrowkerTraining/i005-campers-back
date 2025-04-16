@@ -5,8 +5,8 @@ export const campingWithDetails = Prisma.validator<Prisma.CampingDefaultArgs>()(
     amenities: true,
     location: true,
     pricing: true,
-    nearbyAttractions: true
-  }
+    nearbyAttractions: true,
+  },
 });
 
 export type CampingWithDetails = Prisma.CampingGetPayload<typeof campingWithDetails>;
