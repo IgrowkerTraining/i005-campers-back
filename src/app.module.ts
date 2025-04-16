@@ -10,6 +10,7 @@ import { jwtConfig } from './config/jwt.config';
 import { redisConfig } from './config/redis.config';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { MercadoPagoModule } from './modules/mercado-pago/mercado-pago.module';
+import { NestjsFormDataModule } from 'nestjs-form-data';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MercadoPagoModule } from './modules/mercado-pago/mercado-pago.module';
       useFactory: () => redisConfig(),
       isGlobal: true,
     }),
+    NestjsFormDataModule,
     UsersModule,
     CampingsModule,
     AuthModule,

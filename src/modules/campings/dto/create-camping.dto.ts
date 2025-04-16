@@ -13,6 +13,7 @@ import {
 import { Amenity, Location, Pricing } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { HasMimeType, IsFile, MemoryStoredFile } from 'nestjs-form-data';
 
 class LocationDto {
   @ApiProperty()
@@ -79,64 +80,202 @@ class LimitCampingDto {
   @ApiProperty()
   maxUsers: number;
 }
+// export class CreateCampingDto {
+//   @ApiProperty()
+//   @IsNotEmpty()
+//   @IsString()
+//   name: string;
+
+//   @ApiProperty({ type: LocationDto })
+//   @IsOptional()
+//   @ValidateNested()
+//   location?: LocationDto;
+
+//   @ApiProperty({ type: LocationDto })
+//   @IsNotEmpty()
+//   @ValidateNested()
+//   campingAddress: string;
+
+//   @ApiProperty({ type: LocationDto })
+//   @IsNotEmpty()
+//   @ValidateNested()
+//   mapLink: string;
+
+//   @ApiProperty()
+//   @IsNotEmpty()
+//   @IsString()
+//   description: string;
+
+//   @ApiProperty()
+//   @IsNotEmpty()
+//   @IsString()
+//   contactPhone: string;
+
+//   // @ApiProperty({ type: MediaDto })
+//   // @IsOptional()
+//   // @IsArray()
+//   // @ValidateNested({ each: true })
+//   // media?: MediaDto[];
+
+//   @ApiProperty({ type: MediaDto })
+//   @IsOptional()
+//   @IsArray()
+//   @ValidateNested({ each: true })
+//   @Type(() => MediaDto)
+//   media?: MediaDto[];
+
+//   @ApiProperty({ type: PricingDto })
+//   @IsNotEmpty()
+//   @IsArray()
+//   @ValidateNested({ each: true })
+//   pricing: PricingDto;
+
+//   @ApiProperty({ type: AmenityDto })
+//   @IsOptional()
+//   @IsArray()
+//   @ValidateNested({ each: true })
+//   amenities?: AmenityDto[];
+
+//   @ApiProperty({ type: () => [NearbyAttractionDto] })
+//   @IsOptional()
+//   @IsArray()
+//   @ValidateNested({ each: true })
+//   nearbyAttractions?: NearbyAttractionDto[];
+
+//   @ApiProperty({
+//     type: 'object',
+//     properties: {
+//       maxTents: { type: 'number', example: 5 },
+//       maxUsers: { type: 'number', example: 10 },
+//     },
+//   })
+//   @IsNotEmpty()
+//   @ValidateNested()
+//   limitCamping: {
+//     maxTents: number;
+//     maxUsers: number;
+//   };
+
+//   @IsOptional()
+//   @IsFile()
+//   @HasMimeType(['image/jpeg', 'image/png'])
+//   image?: MemoryStoredFile;
+
+//   // @IsOptional()
+//   // @IsFile()
+//   // @HasMimeType(['image/jpeg', 'image/png'])
+//   // image?: MemoryStoredFile;
+
+//   // @ApiProperty({ type: () => [MediaDto] })
+//   // @IsOptional()
+//   // @IsArray()
+//   // @ValidateNested({ each: true })
+//   // media?: MediaDto[];
+//   // @ApiProperty({ type: 'object', properties: { image: { type: 'string', format: 'binary' } } })
+//   // @IsOptional()
+//   // image?: MemoryStoredFile[];
+// }
+
+// export class CreateCampingDto {
+//   @IsString()
+//   @IsNotEmpty()
+//   name: string;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   campingAddress: string;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   @IsUrl()
+//   mapLink: string;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   description: string;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   contactPhone: string;
+
+//   @IsNumber()
+//   @IsNotEmpty()
+//   pricePerNight: number;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   tarifa: string;
+
+//   @IsNumber()
+//   @IsNotEmpty()
+//   maxTents: number;
+
+//   @IsNumber()
+//   @IsNotEmpty()
+//   maxUsers: number;
+
+//   @IsOptional()
+//   @IsFile()
+//   @HasMimeType(['image/jpeg', 'image/png'])
+//   image?: MemoryStoredFile;
+// }
+
 export class CreateCampingDto {
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ type: LocationDto })
-  @IsNotEmpty()
-  @ValidateNested()
-  location: LocationDto;
-
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   description: string;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   contactPhone: string;
 
-  @ApiProperty({ type: MediaDto })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  media?: MediaDto[];
-
-  @ApiProperty({ type: PricingDto })
+  @ApiProperty()
+  @IsString()
   @IsNotEmpty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  pricing: PricingDto;
+  campingAddress: string;
 
-  @ApiProperty({ type: AmenityDto })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  amenities?: AmenityDto[];
-
-  @ApiProperty({ type: () => [NearbyAttractionDto] })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  nearbyAttractions?: NearbyAttractionDto[];
-
-  @ApiProperty({
-    type: 'object',
-    properties: {
-      maxTents: { type: 'number', example: 5 },
-      maxUsers: { type: 'number', example: 10 },
-    },
-  })
+  @ApiProperty()
+  @IsString()
   @IsNotEmpty()
-  @ValidateNested()
-  limitCamping: {
-    maxTents: number;
-    maxUsers: number;
-  };
+  mapLink: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsNotEmpty()
+  pricePerNight: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  tarifa: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsNotEmpty()
+  maxTents: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsNotEmpty()
+  maxUsers: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
+  @IsOptional()
+  @IsFile()
+  @HasMimeType(['image/jpeg', 'image/png'])
+  images?: MemoryStoredFile;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  amenities?: string;
 }
 
 export class CampingResponseDto {
