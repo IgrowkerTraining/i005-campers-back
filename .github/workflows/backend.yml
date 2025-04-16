@@ -40,16 +40,16 @@ jobs:
 
       - name: Docker build image
         run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}:latest .
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest .
 
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}:latest 
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}cback:latest 
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy i005-campers-back \
-            --image ${{ secrets.ARTIFACT_REGISTRY_URL }}:latest \
+            --image ${{ secrets.ARTIFACT_REGISTRY_URL }}cback \
             --region ${{ secrets.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated
