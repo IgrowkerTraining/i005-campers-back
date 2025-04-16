@@ -22,17 +22,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend
+          cd i005-campers-back
           npm install
 
       - name: Build NestJS project
         run: |
-          cd backend
+          cd i005-campers-back
           npm run build
 
       - name: Docker build image
         run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/bai005-campers-back ./baci005-campers-back
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/bai005-campers-back ./i005-campers-back
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
