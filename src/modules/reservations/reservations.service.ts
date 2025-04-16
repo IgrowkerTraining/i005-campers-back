@@ -82,8 +82,8 @@ export class ReservationsService {
     return this.prisma.reservation.findMany();
   }
 
-  findOne(id: number) {
-    return this.prisma.reservation.findFirstOrThrow({ where: { id } });
+  async findOne(id: number): Promise<Reservation | null> {
+    return await this.prisma.reservation.findFirst({ where: { id } });
   }
 
   async findByCampingId(campingId: number): Promise<Reservation[]> {
