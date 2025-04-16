@@ -1,4 +1,5 @@
 name: Backend
+
 on:
   push:
     paths:
@@ -28,18 +29,18 @@ jobs:
         run: |
           npm run build
 
-      - name: Docker build image
-        run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }} .
-
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY_BK }}
 
-      - name: Configure Docker for Artifact Registry
+      - name: Configure Docker to use Artifact Registry
         run: |
           gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev
+
+      - name: Docker build image
+        run: |
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }} .
 
       - name: Push Docker image to Artifact Registry
         run: |
