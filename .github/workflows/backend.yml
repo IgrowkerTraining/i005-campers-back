@@ -22,17 +22,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # cd i005-campers-back
           npm install
 
       - name: Build NestJS project
         run: |
-          # cd i005-campers-back
           npm run build
 
       - name: Docker build image
         run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/i005-campers-back ./i005-campers-back
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }} .
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
@@ -45,12 +43,12 @@ jobs:
 
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/i005-campers-back
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy i005-campers-back \
-            --image ${{ secrets.ARTIFACT_REGISTRY_URL }}/i005-campers-back \
+            --image ${{ secrets.ARTIFACT_REGISTRY_URL }} \
             --region ${{ secrets.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated
