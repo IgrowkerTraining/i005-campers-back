@@ -3,10 +3,16 @@ import { ReservationsService } from '../reservations/reservations.service';
 import { PaymentDataType } from 'src/common/types/mercadoPago/payment';
 import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
 import { Reservation } from '@prisma/client';
+import { PaymentRepository } from './payment.repository';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class MercadoPagoService {
-  constructor(private readonly reservationService: ReservationsService) {}
+  constructor(
+    private readonly reservationService: ReservationsService,
+    private readonly prisma: PrismaService,
+    private readonly paymentRepository: PaymentRepository,
+  ) {}
   async createUrlPayment(price: number, reservationId: number) {
     await this.checkReservation(reservationId);
 
@@ -34,16 +40,56 @@ export class MercadoPagoService {
     return response;
   }
 
-  async updateReservation(paymentId: string): Promise<Reservation> {
-    const { external_reference, status, status_detail } = await this.getPaymentData(paymentId);
+  async paymentAccredited(paymentId: string): Promise<Reservation> {
+    const { external_reference, status, status_detail, ...rest } = await this.getPaymentData(paymentId);
 
-    if (status === 'approved' && status_detail === 'accredited') {
-      return await this.reservationService.update(+external_reference, {
-        status: RESERVATION_STATUS.CONFIRMED,
-      });
+    if (status !== 'approved' || status_detail !== 'accredited') {
+      throw new BadRequestException('Ocurrio algun error con la verificacion del pago');
     }
 
-    throw new BadRequestException('Ocurrio algun error con la verificacion del pago');
+    const transaction = await this.prisma.$transaction(async () => {
+      const reservation = await this.reservationService.update(+external_reference, {
+        status: RESERVATION_STATUS.CONFIRMED,
+      });
+
+      const startReservation = new Date(reservation.startDate);
+      startReservation.setDate(startReservation.getDate() - 1);
+
+      await this.paymentRepository.create({
+        amount: rest.transaction_amount,
+        externalPaymentId: paymentId,
+        reservationId: +external_reference,
+        limitDateRefound: startReservation,
+      });
+
+      return { reservation };
+    });
+
+    return transaction.reservation;
+  }
+
+  async paymentRefound(reservationId: number) {
+    const payment = await this.paymentRepository.findFirst(reservationId);
+
+    if (!payment) throw new NotFoundException('pago de reservacion no encontrado');
+
+    if (!this.checkIsPossibleRefound({ limitDateRefound: payment.limitDateRefound })) {
+      throw new NotAcceptableException('Se Excedio la fecha limite de reembolso');
+    }
+
+    const result = await fetch(`https://api.mercadopago.com/v1/payments/${payment.externalPaymentId}/refunds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': crypto.randomUUID(),
+        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+      },
+    });
+
+    if (result.ok && result.status === 201) {
+      await this.paymentRepository.delete(payment.id);
+      await this.reservationService.update(reservationId, { status: RESERVATION_STATUS.CANCELLED });
+    }
   }
 
   private async getPaymentData(paymentId: string): Promise<PaymentDataType> {
@@ -67,5 +113,16 @@ export class MercadoPagoService {
     if (reservation.status !== RESERVATION_STATUS.PENDING) {
       throw new NotAcceptableException('El estatus de la reservacion debe ser PENDING');
     }
+  }
+
+  private checkIsPossibleRefound({ limitDateRefound }: { limitDateRefound: Date }): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const limitDate = new Date(limitDateRefound);
+    limitDate.setHours(0, 0, 0, 0);
+    console.log(today, limitDate);
+
+    return today < limitDate;
   }
 }
