@@ -22,7 +22,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import cloudinary from 'src/config/cloudinary.config';
 import dotenvOptions from 'src/config/dotenv.config';
-import { ImgExtension } from 'src//common/enum';
+import { ImgExtension } from 'src/enums/enum';
 
 @Injectable()
 export class CloudinaryService {
@@ -60,6 +60,16 @@ export class CloudinaryService {
       );
     }
   }
+
+  // async uploadImage(file: Express.Multer.File): Promise<UploadApiResponse | UploadApiErrorResponse> {
+  //   return new Promise((resolve, reject) => {
+  //     const upload = this.cloudinary.uploader.upload_stream((error, result) => {
+  //       if (error) return reject(error);
+  //       resolve(result);
+  //     });
+  //     upload.end(file.buffer);
+  //   });
+  // }
 
   async uploadImagesToCloudinary(images: Express.Multer.File[]): Promise<string[]> {
     this.checkValidImages(images);
