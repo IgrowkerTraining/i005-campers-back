@@ -1,11 +1,11 @@
-name: Backend CI/CD - NestJS with Docker & Artifact Registry
-
+name: Backend
 on:
   push:
     paths:
       - 'i005-campers-back/**'
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-push-deploy:
