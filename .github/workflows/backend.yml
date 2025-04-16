@@ -1,0 +1,58 @@
+name: Backend CI/CD - NestJS with Docker & Artifact Registry
+
+on:
+  push:
+    paths:
+      - 'i005-campers-back/**'
+    branches:
+      - main
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22.14.0
+
+      - name: Install dependencies
+        run: |
+          cd i005-campers-back
+          npm install
+
+      - name: Build NestJS project
+        run: |
+          cd i005-campers-back
+          npm run build
+
+      - name: Docker build image
+        run: |
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/i005-campers-back ./i005-campers-back
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_BK }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/i005-campers-back
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy i005-campers-back \
+            --image ${{ secrets.ARTIFACT_REGISTRY_URL }}/i005-campers-back \
+            --region ${{ secrets.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated
+
+
