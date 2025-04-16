@@ -53,6 +53,7 @@ model Payment{
    statusDetail String?
    payerEmail String?
    externalPaymentId String
+   limitDateRefound DateTime @db.Date
 
   reservation   Reservation @relation("ReservationDeposit", fields: [reservationId], references: [id])
   reservationId   Int @unique
