@@ -18,6 +18,10 @@ import {
 import { CreateCampingDto } from './dto/create-camping.dto';
 import { CampingsService } from './campings.service';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { Roles } from 'src/decorators/roles.decorators';
+import { Role } from 'src/enums/role.enum';
+import { RolesGuard } from 'src/guards/roles.guard';
 import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
@@ -27,7 +31,8 @@ export class CampingsController {
   constructor(private readonly campingsService: CampingsService) {}
 
   @Post()
-  @UseGuards(AuthGuardGuard)
+  @UseGuards(AuthGuardGuard, RolesGuard)
+  @Roles(Role.owner)
   @UseInterceptors(FilesInterceptor('files'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -76,6 +81,8 @@ export class CampingsController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuardGuard, RolesGuard)
+  @Roles(Role.owner)
   remove(@Param('id') id: string) {
     return this.campingsService.remove(+id);
   }
