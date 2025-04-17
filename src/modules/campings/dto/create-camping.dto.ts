@@ -253,13 +253,7 @@ export class CreateCampingDto {
 
   @ApiProperty()
   @IsString()
-  @IsNotEmpty()
-  tarifa: string;
-
-  @ApiProperty()
-  @IsNumber()
-  @IsNotEmpty()
-  maxTents: string;
+  contactPhone: string;
 
   @ApiProperty()
   @IsNumber()
@@ -298,10 +292,18 @@ export class CreateCampingDto {
   @ValidateNested({ each: true })
   imageUrls?: string[];
 
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
-  amenities?: string;
+  @ApiProperty({
+    type: 'object',
+    properties: {
+      maxTents: { type: 'number', example: 5 },
+      maxUsers: { type: 'number', example: 10 },
+    },
+  })
+  @IsNotEmpty()
+  limitCamping: {
+    maxTents: number;
+    maxUsers: number;
+  };
 }
 
 export class CampingResponseDto {

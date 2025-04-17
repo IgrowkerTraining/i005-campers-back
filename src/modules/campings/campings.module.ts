@@ -5,12 +5,11 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { CampingSearchService } from './campings-search.service';
 import { CampingsSearchController } from './campings-search.controller';
 import { CampingGateway } from '../webSockets/camping.gateway';
-import { CloudinaryModule } from '../cloudinary/cloudinary.module';
-import { NestjsFormDataModule } from 'nestjs-form-data';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Module({
-  imports: [PrismaModule, CloudinaryModule, NestjsFormDataModule],
-  providers: [CampingsService, CampingSearchService, CampingGateway],
+  imports: [PrismaModule],
+  providers: [CampingsService, CampingSearchService, CampingGateway, CloudinaryService],
   controllers: [CampingsController, CampingsSearchController],
   exports: [CampingsService, CampingGateway],
 })

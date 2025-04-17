@@ -49,8 +49,7 @@
 import {
   Controller,
   Post,
-  Get,
-  Delete,
+  UploadedFile,
   UploadedFiles,
   UseInterceptors,
   Body,
@@ -67,29 +66,35 @@ export class CloudinaryController {
 
   // Endpoint to upload multiple files
   @Post('upload')
-  @UseInterceptors(FilesInterceptor('files'))
-  async uploadFiles(@UploadedFiles() files: Array<Express.Multer.File>) {
-    if (!files || files.length === 0) {
-      throw new BadRequestException('No images uploaded');
-    }
-    return await this.cloudinaryService.uploadFilesToCloudinary(files);
+  @UseInterceptors(FileInterceptor('files'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
+  uploadImage(
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+        ],
+      }),
+    )
+    files: Express.Multer.File,
+  ) {
+    console.log(files);
+
+    return this.cloudinaryService.uploadFiles(files);
   }
-
-  // // Endpoint to retrieve all images
-  // @Get()
-  // async findAll() {
-  //   return await this.cloudinaryService.getAllImagesCloudinary();
-  // }
-
-  // // Endpoint to retrieve a specific image by ID
-  // @Get(':id')
-  // async findOne(@Param('id') id: string) {
-  //   return await this.cloudinaryService.getImgByIdCloudinary(id);
-  // }
-
-  // // Endpoint to delete images
-  // @Delete(':id')
-  // async remove(@Body() deleteCloudinaryDto: DeleteCloudinaryDto) {
-  //   return await this.cloudinaryService.deleteImgFromCloudinary(deleteCloudinaryDto.images);
-  // }
 }
