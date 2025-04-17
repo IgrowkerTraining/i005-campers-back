@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -13,16 +14,20 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { CreateCampingDto } from './dto/create-camping.dto';
 import { CampingsService } from './campings.service';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Roles } from 'src/decorators/roles.decorators';
 import { Role } from 'src/common/enums/role.enum';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { ReviewResponseDto } from './dto/review-response.dto';
+import { createReviewDto } from './dto/create-review.dto';
 
 @Controller('campings')
 @ApiBearerAuth()
@@ -38,7 +43,7 @@ export class CampingsController {
     schema: {
       type: 'object',
       properties: {
-        file: {
+        files: {
           type: 'array',
           items: {
             type: 'string',
@@ -93,21 +98,10 @@ export class CampingsController {
   @ApiResponse({ status: 201, type: [ReviewResponseDto] })
   @ApiBody({ type: [createReviewDto] })
   createReviews(
-    @Param('id') campingId: string,
-    @Body() body: createReviewDto | createReviewDto[],
+    @Body() body: createReviewDto ,
     @Request() req,
   ) {
-    const createReviewDtos = Array.isArray(body) ? body : [body];
-
-    const parseCampingId = parseInt(campingId);
-
-    createReviewDtos.forEach((dto) => {
-      if (dto.campingId !== parseCampingId) {
-        throw new BadRequestException('El campingId en el cuerpo de la solicitud no coincide con el parámetro de la URL');
-      }
-    });
-  
-    return this.campingsService.createReviews(req.user.id, createReviewDtos);
+    return this.campingsService.createReviews(req.user.id,[body]);
   }
   // getReviews
   @Get(':id/reviews')

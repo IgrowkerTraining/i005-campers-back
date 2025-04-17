@@ -66,11 +66,11 @@ model Review {
   campingId  Int
   user       User     @relation(fields: [userId], references: [id])
   userId     String
-  name       String // "Nombre del usuario que deja la reseña"
-  comment    String // "Comentario de la reseña"
-  rating     Float // "Valoración de la reseña"
-  profilePic String? // "URL de la foto de perfil" Opcional
-  date       DateTime //  "Fecha de publicación de la reseña"
+  name       String 
+  comment    String 
+  rating     Float 
+  profilePic String? 
+  date       DateTime 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
