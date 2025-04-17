@@ -17,7 +17,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { CreateCampingDto } from './dto/create-camping.dto';
+import { CampingResponseDto, CreateCampingDto } from './dto/create-camping.dto';
 import { CampingsService } from './campings.service';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -28,6 +28,7 @@ import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ReviewResponseDto } from './dto/review-response.dto';
 import { createReviewDto } from './dto/create-review.dto';
+import { CreateFavouritesDto } from './dto/favourites-camping.dto';
 
 @Controller('campings')
 @ApiBearerAuth()
@@ -97,11 +98,8 @@ export class CampingsController {
   @ApiOperation({ summary: 'Crear una o más reseñas para un camping' })
   @ApiResponse({ status: 201, type: [ReviewResponseDto] })
   @ApiBody({ type: [createReviewDto] })
-  createReviews(
-    @Body() body: createReviewDto ,
-    @Request() req,
-  ) {
-    return this.campingsService.createReviews(req.user.id,[body]);
+  createReviews(@Body() body: createReviewDto, @Request() req) {
+    return this.campingsService.createReviews(req.user.id, [body]);
   }
   // getReviews
   @Get(':id/reviews')
@@ -110,5 +108,33 @@ export class CampingsController {
   getReviews(@Param('id') campingId: string): Promise<ReviewResponseDto[]> {
     return this.campingsService.getReviewsByCampingId(parseInt(campingId));
   }
-  
+
+  // Endpoint para agregar un favorito
+  @Post(':id/favourites')
+  @UseGuards(AuthGuardGuard)
+  async addFavourite(@Param('id') campingId: string, @Request() req) {
+    // Si el userId viene del token, no es necesario recibirlo en el body
+    const dto: CreateFavouritesDto = {
+      campingId: Number(campingId),
+      userId: req.user.id,
+    };
+    await this.campingsService.addFavourite(dto);
+    return { message: 'Camping agregado a favoritos' };
+  }
+
+  // Endpoint para quitar un favorito
+  @Delete(':id/favourites')
+  @UseGuards(AuthGuardGuard)
+  async removeFavourite(@Param('id') campingId: string, @Request() req) {
+    await this.campingsService.removeFavourite(req.user.id, Number(campingId));
+    return { message: 'Camping eliminado de favoritos' };
+  }
+
+  @Get('favourites')
+  @UseGuards(AuthGuardGuard)
+  @ApiOperation({ summary: 'Listar campings favoritos del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Lista de campings favoritos', type: [CampingResponseDto] })
+  async getFavourites(@Request() req) {
+    return this.campingsService.getFavouritesByUser(req.user.id);
+  }
 }

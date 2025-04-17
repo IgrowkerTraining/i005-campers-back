@@ -119,19 +119,33 @@ export class SearchCampingDto {
   @IsString()
   mapLink?: string;
 
+  // @ApiProperty({ required: false, type: [AmenityDto], description: 'Servicios disponibles' })
+  // @IsOptional()
+  // @IsArray()
+  // @ValidateNested({ each: true })
+  // @Type(() => AmenityDto)
+  // amenities?: AmenityDto[];
+
   @ApiProperty({ required: false, type: [AmenityDto], description: 'Servicios disponibles' })
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AmenityDto)
-  amenities?: AmenityDto[];
+  @IsString({ each: true })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  amenities?: string[];
+
+  // @ApiProperty({ required: false, type: [NearbyAttractionDto], description: 'Atracciones cercanas' })
+  // @IsOptional()
+  // @IsArray()
+  // @ValidateNested({ each: true })
+  // @Type(() => NearbyAttractionDto)
+  // nearbyAttractions?: NearbyAttractionDto[];
 
   @ApiProperty({ required: false, type: [NearbyAttractionDto], description: 'Atracciones cercanas' })
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => NearbyAttractionDto)
-  nearbyAttractions?: NearbyAttractionDto[];
+  @IsString({ each: true })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  nearbyAttractions?: string[];
 
   @ApiProperty({ required: false, description: 'numero maximo de usuarios' })
   @IsOptional()

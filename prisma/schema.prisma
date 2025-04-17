@@ -22,6 +22,7 @@ model User {
   campings     Camping[]
   reservations Reservation[]
   reviews      Review[]
+  favourites   Favourites[]
 }
 
 model Reservation {
@@ -50,11 +51,11 @@ model Reservation {
 model Payment {
   id Int @id @default(autoincrement())
 
-   amount Float
-   statusDetail String?
-   payerEmail String?
-   externalPaymentId String
-   limitDateRefound DateTime @db.Date
+  amount            Float
+  statusDetail      String?
+  payerEmail        String?
+  externalPaymentId String
+  limitDateRefound  DateTime @db.Date
 
   reservation   Reservation @relation("ReservationDeposit", fields: [reservationId], references: [id])
   reservationId Int         @unique
@@ -66,15 +67,27 @@ model Review {
   campingId  Int
   user       User     @relation(fields: [userId], references: [id])
   userId     String
-  name       String 
-  comment    String 
-  rating     Float 
-  profilePic String? 
-  date       DateTime 
+  name       String
+  comment    String
+  rating     Float
+  profilePic String?
+  date       DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([campingId])
+  @@index([userId])
+}
+
+model Favourites {
+  id        Int     @id @default(autoincrement())
+  camping   Camping @relation(fields: [campingId], references: [id])
+  campingId Int
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([userId, campingId])
   @@index([campingId])
   @@index([userId])
 }
@@ -95,6 +108,7 @@ model Camping {
 
   reservations Reservation[]
   reviews      Review[]
+  favourites   Favourites[]
   user         User          @relation(fields: [userId], references: [id])
   userId       String
   createdAt    DateTime      @default(now())
