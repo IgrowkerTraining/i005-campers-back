@@ -5,96 +5,219 @@ import {
   Min,
   Max,
   IsArray,
-  IsLatitude,
-  IsLongitude,
   IsIn,
+  ValidateNested,
+  IsBoolean,
+  IsNotEmpty,
+  IsUrl,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsSanitizedHtml } from 'src/decorators/is-sanitizated-html.decorator';
+import { SANITIZE_CONFIG } from 'src/config/sanitize.config';
 
+export class LocationDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
+  campingAddress: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @IsUrl()
+  mapLink: string;
+}
+
+export class PricingDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  pricePerNight: number;
+
+  @ApiProperty({ required: true, description: 'Tipo de precio' })
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['carpa', 'vehiculo', 'paseDiario'])
+  tarifa: string;
+}
+
+export class AmenityDto {
+  @ApiProperty({ required: false, description: 'Nombre del servicio' })
+  @IsOptional()
+  @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
+  name?: string;
+
+  @ApiProperty({ required: false, description: 'Disponibilidad del servicio' })
+  @IsOptional()
+  @IsBoolean()
+  available?: boolean;
+}
+
+class MediaDto {
+  @IsUrl()
+  url: string;
+
+  @IsIn(['image', 'video'])
+  type: string;
+}
+
+export class NearbyAttractionDto {
+  @ApiProperty({ required: true, description: 'Nombre de la atracción cercana' })
+  @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
+  name: string;
+}
+
+class LimitCampingDto {
+  @ApiProperty()
+  maxTents: number;
+
+  @ApiProperty()
+  maxUsers: number;
+}
 export class SearchCampingDto {
+  @ApiProperty({ required: false, description: 'Nombre del camping' })
   @IsOptional()
   @IsString()
-  @Transform(({ value }) => value?.trim())
-  searchTerm?: string;
+  name?: string;
 
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value?.trim())
-  location?: string;
-
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value?.trim())
-  region?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Transform(({ value }) => Number(value))
-  maxPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Transform(({ value }) => Number(value))
-  minPrice?: number;
-
+  @ApiProperty({ required: false, type: [PricingDto], description: 'Criterios de precios' })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
-  amenities?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => PricingDto)
+  pricing?: PricingDto[];
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
-  @IsIn(['playa', 'montaña', 'rio', 'lago', 'bosque'], { each: true })
-  natureTypes?: string[];
-
+  @ApiProperty({ required: false, description: 'Precio por noche exacto a buscar' })
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  @Max(100)
   @Transform(({ value }) => Number(value))
-  proximityToNature?: number;
+  pricePerNight?: number;
 
+  @ApiProperty({ required: false, description: 'Precio por noche exacto a buscar' })
   @IsOptional()
-  @IsLatitude()
-  @Transform(({ value }) => Number(value))
-  lat?: number;
+  @IsString()
+  tarifa?: string;
 
+  @ApiProperty({ required: false, type: LocationDto, description: 'Ubicación del camping' })
   @IsOptional()
-  @IsLongitude()
-  @Transform(({ value }) => Number(value))
-  lng?: number;
+  @ValidateNested()
+  @Type(() => LocationDto)
+  location?: LocationDto;
 
+  @ApiProperty({ required: false, description: 'Direccion del camping' })
+  @IsOptional()
+  @IsString()
+  @IsSanitizedHtml(SANITIZE_CONFIG)
+  campingAddress?: string;
+
+  @ApiProperty({ required: false, description: 'Link del mapa con la ubicacion del camping' })
+  @IsOptional()
+  @IsString()
+  mapLink?: string;
+
+  @ApiProperty({ required: false, type: [AmenityDto], description: 'Servicios disponibles' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AmenityDto)
+  amenities?: AmenityDto[];
+
+  @ApiProperty({ required: false, type: [NearbyAttractionDto], description: 'Atracciones cercanas' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NearbyAttractionDto)
+  nearbyAttractions?: NearbyAttractionDto[];
+
+  @ApiProperty({ required: false, description: 'numero maximo de usuarios' })
   @IsOptional()
   @IsNumber()
   @Min(1)
-  @Max(50)
   @Transform(({ value }) => Number(value))
-  radius?: number;
+  maxUsers?: number;
 
+  @ApiProperty({ required: false, description: 'numero maximo de carpas' })
   @IsOptional()
-  @IsString()
-  @IsIn(['lowest-price', 'highest-price', 'best-rated', 'most-popular'])
-  sortBy?: string;
+  @IsNumber()
+  @Min(1)
+  @Transform(({ value }) => Number(value))
+  maxTents?: number;
 
+  @ApiProperty({ required: false, description: 'Número de página' })
   @IsOptional()
   @IsNumber()
   @Min(1)
   @Transform(({ value }) => Number(value))
   page?: number = 1;
 
+  @ApiProperty({ required: false, description: 'Límite de resultados por página' })
   @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(100)
   @Transform(({ value }) => Number(value))
   limit?: number = 10;
+}
+
+export class CampingResponseDto {
+  @Expose()
+  id: number;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  description: string;
+
+  @Expose()
+  @ApiProperty({ type: () => LocationDto })
+  location: LocationDto;
+
+  @Expose()
+  contactPhone: string;
+
+  @Expose()
+  media: MediaDto[];
+
+  @Expose()
+  pricing: PricingDto;
+
+  @Expose()
+  @ApiProperty({ type: () => [AmenityDto] })
+  amenities: string[];
+
+  @Expose()
+  @ApiProperty({ type: () => [NearbyAttractionDto] })
+  nearbyAttractions: NearbyAttractionDto[];
+
+  @Expose()
+  @ApiProperty({ type: () => LimitCampingDto })
+  limitCamping: LimitCampingDto;
+
+  @Exclude()
+  userId: string;
+
+  @Exclude()
+  locationId: number;
+
+  @Exclude()
+  limitCampingId: number;
+
+  @Exclude()
+  @Transform(({ value }) => {
+    const date = typeof value === 'string' ? new Date(value) : value;
+    return date ? date.toISOString().split('T')[0] : null;
+  })
+  createdAt: Date | string;
+
+  @Exclude()
+  @Transform(({ value }) => {
+    const date = typeof value === 'string' ? new Date(value) : value;
+    return date ? date.toISOString().split('T')[0] : null;
+  })
+  updatedAt: Date | string;
 }

@@ -1,8 +1,11 @@
-import { Injectable, NotAcceptableException } from '@nestjs/common';
+import { Inject, Injectable, NotAcceptableException } from '@nestjs/common';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LimitCamping, Reservation } from '@prisma/client';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
 
 interface ReservationDataType {
   campingId: number;
@@ -14,7 +17,11 @@ interface ReservationDataType {
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly cachePrefixKey = 'reservations:';
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async create(createReservationDto: CreateReservationDto) {
     const { campingId, startDate, endDate, peopleCount, tentsCount } = createReservationDto;
@@ -59,8 +66,15 @@ export class ReservationsService {
       );
     }
 
+    this.cacheManager.del(`${this.cachePrefixKey}${campingId}`);
+
     return this.prisma.reservation.create({
-      data: { ...createReservationDto, startDate: setStartDate, endDate: setEndDate },
+      data: {
+        ...createReservationDto,
+        startDate: setStartDate,
+        endDate: setEndDate,
+        status: RESERVATION_STATUS.PENDING,
+      },
     });
   }
 
@@ -68,12 +82,22 @@ export class ReservationsService {
     return this.prisma.reservation.findMany();
   }
 
-  findOne(id: number) {
-    return this.prisma.reservation.findFirstOrThrow({ where: { id } });
+  async findOne(id: number): Promise<Reservation | null> {
+    return await this.prisma.reservation.findFirst({ where: { id } });
   }
 
-  findByCampingId(campingId: number) {
-    return this.prisma.reservation.findMany({ where: { campingId: campingId } });
+  async findByCampingId(campingId: number): Promise<Reservation[]> {
+    const resultCache = await this.cacheManager.get<Reservation[]>(`${this.cachePrefixKey}${campingId}`);
+
+    if (resultCache) {
+      return resultCache;
+    }
+
+    const response = await this.prisma.reservation.findMany({ where: { campingId: campingId } });
+
+    await this.cacheManager.set<Reservation[]>(`${this.cachePrefixKey}${campingId}`, response);
+
+    return response;
   }
 
   update(id: number, updateReservationDto: UpdateReservationDto) {
@@ -97,6 +121,9 @@ export class ReservationsService {
         },
         endDate: {
           gte: new Date(startDate).toISOString(),
+        },
+        status: {
+          not: RESERVATION_STATUS.CANCELLED,
         },
       },
     });

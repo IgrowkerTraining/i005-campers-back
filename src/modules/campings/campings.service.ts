@@ -1,42 +1,56 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CampingResponseDto, CreateCampingDto } from './dto/create-camping.dto';
+import { CampingResponseDto, CreateCampingDto, PaginatedResponseDto } from './dto/create-camping.dto';
 import { plainToInstance } from 'class-transformer';
 import { Camping, Prisma } from '@prisma/client';
 import { CampingGateway } from '../webSockets/camping.gateway';
-
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class CampingsService {
-  constructor(private prisma: PrismaService,
-    private readonly campingGateway:CampingGateway
+  constructor(
+    private prisma: PrismaService,
+    private readonly campingGateway: CampingGateway,
+    private readonly CloudinaryService: CloudinaryService,
   ) {}
-  async findAll() {
-    const campings = await this.prisma.camping.findMany({
-      include: {
-        location: {
-          select: {
-            city: true,
-            region: true,
-            country: true,
-            coordinates: true,
-          },
-        },
-        pricing: true,
-        amenities: true,
-        nearbyAttractions: true,
-        limitCamping: true,
-      },
-    });
+  async findAll(page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<CampingResponseDto>> {
+    const skip = (page - 1) * limit;
 
-    return plainToInstance(CampingResponseDto, campings, {
-      excludeExtraneousValues: true, // Solo incluye campos marcados con @Expose
+    const [campings, total] = await Promise.all([
+      this.prisma.camping.findMany({
+        skip,
+        take: limit,
+        include: {
+          location: true,
+          media: true,
+          pricing: true,
+          amenities: true,
+          nearbyAttractions: true,
+          limitCamping: true,
+        },
+      }),
+      this.prisma.camping.count(),
+    ]);
+
+    const response = {
+      data: plainToInstance(CampingResponseDto, campings, {
+        excludeExtraneousValues: true,
+      }),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+
+    return plainToInstance(PaginatedResponseDto<CampingResponseDto>, response, {
+      excludeExtraneousValues: true,
     });
   }
 
   async remove(id: number): Promise<Camping> {
     try {
-      // Primero obtener el camping con sus relaciones
       const campingToDelete = await this.prisma.camping.findUnique({
         where: { id },
         include: {
@@ -44,6 +58,8 @@ export class CampingsService {
           pricing: true,
           amenities: true,
           nearbyAttractions: true,
+          limitCamping: true,
+          media: true,
         },
       });
 
@@ -51,11 +67,11 @@ export class CampingsService {
         throw new NotFoundException(`Camping con ID ${id} no encontrado`);
       }
 
-      // Eliminar en orden inverso para mantener la integridad referencial
       await this.prisma.$transaction([
         this.prisma.pricing.deleteMany({ where: { campingId: id } }),
         this.prisma.nearbyAttraction.deleteMany({ where: { campingId: id } }),
         this.prisma.amenity.deleteMany({ where: { campings: { some: { id } } } }),
+        this.prisma.media.deleteMany({ where: { campingId: id } }),
         this.prisma.camping.delete({ where: { id } }),
       ]);
 
@@ -70,8 +86,15 @@ export class CampingsService {
     }
   }
 
-  async create(data: CreateCampingDto, userId: string) {
+  async create(data: CreateCampingDto, userId: string, files: Express.Multer.File[]): Promise<Camping> {
     const { location, pricing = [], amenities = [], nearbyAttractions = [], limitCamping, ...rest } = data;
+
+    const promiseFile = files.map((k) => this.CloudinaryService.uploadFiles(k));
+
+    const response = await Promise.all(promiseFile);
+    console.log(response);
+
+    const urlArr = response.map((k) => k.url);
 
     return this.prisma.$transaction(async (tx) => {
       const createdCamping = await tx.camping.create({
@@ -86,33 +109,44 @@ export class CampingsService {
 
           amenities: {
             connectOrCreate: amenities.map((amenity) => {
-              // Para amenities existentes (con ID)
               if (amenity.id) {
                 return {
                   where: { id: amenity.id },
                   create: {
-                    name: `TEMP-${amenity.id}`, // Valor dummy que no se usará
+                    name: `TEMP-${amenity.id}`,
                     available: true,
                   },
                 };
               }
-              // Para nuevas amenities (sin ID)
               return {
-                where: { id: -1 }, // Forzar creación
+                where: { id: -1 },
                 create: {
-                  name: amenity.name!, // Validado por el DTO
+                  name: amenity.name!,
                   available: amenity.available ?? true,
                 },
               };
             }),
           },
+          media: {
+            create: urlArr.map((mediaDto) => ({
+              url: mediaDto,
+              type: 'image',
+            })),
+          },
+
           nearbyAttractions: { create: nearbyAttractions },
           limitCamping: { create: { maxTents: limitCamping.maxTents, maxUsers: limitCamping.maxUsers } },
         },
         include: {
           location: true,
-          pricing: true,
+          pricing: {
+            select: {
+              pricePerNight: true,
+              campingId: false,
+            },
+          },
           amenities: true,
+          media: true,
           nearbyAttractions: true,
           limitCamping: true,
         },
@@ -120,10 +154,8 @@ export class CampingsService {
       this.campingGateway.notifyNewCamping(createdCamping);
 
       return plainToInstance(CampingResponseDto, createdCamping, {
-        excludeExtraneousValues: false,
+        excludeExtraneousValues: true,
       });
     });
-
-
   }
 }

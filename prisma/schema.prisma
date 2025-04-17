@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
 model User {
   id       String    @id @default(uuid())
   name     String?
@@ -14,6 +20,7 @@ model User {
   password String
   owner    Boolean   @default(false)
   campings Camping[]
+  reservations Reservation[]
 }
 
 model Reservation {
@@ -22,28 +29,51 @@ model Reservation {
   campingId Int
   startDate DateTime
   endDate   DateTime
-
   peopleCount Int
   tentsCount  Int
+  status ReservationStatus
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  cancelledAt  DateTime?
+  
+  depositAmount Payment? @relation("ReservationDeposit")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@index([campingId])
+  @@index([startDate, endDate])
+  @@index([status])
+  }
+
+model Payment{
+   id   Int    @id @default(autoincrement())
+
+   amount Float
+   statusDetail String?
+   payerEmail String?
+   externalPaymentId String
+   limitDateRefound DateTime @db.Date
+
+  reservation   Reservation @relation("ReservationDeposit", fields: [reservationId], references: [id])
+  reservationId   Int @unique
 }
 
- model Camping {
+model Camping {
   id                Int                @id @default(autoincrement())
-  name              String
-  description       String
+  name              String // "Nombre del camping"
+  description       String // "Descripción"
+  contactPhone      String
   location          Location           @relation(fields: [locationId], references: [id])
   locationId        Int
-  nearNature        String[] // Ej: ["river", "beach"]
   pricing           Pricing[]
   amenities         Amenity[]
+  media             Media[]
   nearbyAttractions NearbyAttraction[]
-  reservations      Reservation[]
+  limitCamping      LimitCamping       @relation(fields: [limitCampingId], references: [id])
+  limitCampingId    Int                @unique
 
-  limitCamping   LimitCamping @relation(fields: [limitCampingId], references: [id])
-  limitCampingId Int          @unique
+  reservations Reservation[]
 
   user      User     @relation(fields: [userId], references: [id])
   userId    String
@@ -51,32 +81,25 @@ model Reservation {
   updatedAt DateTime @updatedAt
 
   @@index([name])
-  @@index([nearNature])
-}
-
-model LimitCamping {
-  id       Int @id @default(autoincrement())
-  maxUsers Int
-  maxTents Int
-
-  camping Camping?
+  @@index([locationId])
+  @@index([userId])
 }
 
 model Location {
-  id          Int       @id @default(autoincrement())
-  city        String
-  region      String
-  country     String    @default("España")
-  coordinates String?
-  campings    Camping[]
+  id             Int       @id @default(autoincrement())
+  campingAddress String
+  mapLink        String
+  campings       Camping[]
 }
 
 model Pricing {
   id            Int     @id @default(autoincrement())
+  tarifa        String
   pricePerNight Float
-  season        String
   camping       Camping @relation(fields: [campingId], references: [id])
   campingId     Int
+
+  @@index([campingId])
 }
 
 model Amenity {
@@ -89,8 +112,25 @@ model Amenity {
 model NearbyAttraction {
   id        Int     @id @default(autoincrement())
   name      String
-  type      String // "playa", "montaña", "parque-nacional", etc.
-  distance  Float // En kilómetros
   camping   Camping @relation(fields: [campingId], references: [id])
   campingId Int
+
+  @@index([campingId])
+}
+
+model LimitCamping {
+  id       Int      @id @default(autoincrement())
+  maxUsers Int
+  maxTents Int
+  camping  Camping?
+}
+
+model Media {
+  id        Int     @id @default(autoincrement())
+  url       String
+  type      String // "image" o "video"
+  camping   Camping @relation(fields: [campingId], references: [id])
+  campingId Int
+
+  @@index([campingId])
 }

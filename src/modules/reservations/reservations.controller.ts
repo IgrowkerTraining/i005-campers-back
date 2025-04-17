@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Response } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Response, NotFoundException } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
@@ -19,8 +19,12 @@ export class ReservationsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number) {
-    return this.reservationsService.findOne(+id);
+  async findOne(@Param('id') id: number) {
+    const result = await this.reservationsService.findOne(+id);
+
+    if (!result) throw new NotFoundException();
+
+    return result;
   }
 
   @Get('campingId/:id')
