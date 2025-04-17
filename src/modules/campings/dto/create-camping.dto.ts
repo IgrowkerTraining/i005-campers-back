@@ -108,12 +108,6 @@ export class CreateCampingDto {
   @IsString()
   contactPhone: string;
 
-  @ApiProperty({ type: MediaDto })
-  @IsNotEmpty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  media: MediaDto[];
-
   @ApiProperty({ type: PricingDto })
   @IsNotEmpty()
   @IsArray()
@@ -140,7 +134,6 @@ export class CreateCampingDto {
     },
   })
   @IsNotEmpty()
-  // @ValidateNested()
   limitCamping: {
     maxTents: number;
     maxUsers: number;
