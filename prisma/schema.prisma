@@ -50,10 +50,11 @@ model Reservation {
 model Payment {
   id Int @id @default(autoincrement())
 
-  amount            Float
-  statusDetail      String?
-  payerEmail        String?
-  externalPaymentId String
+   amount Float
+   statusDetail String?
+   payerEmail String?
+   externalPaymentId String
+   limitDateRefound DateTime @db.Date
 
   reservation   Reservation @relation("ReservationDeposit", fields: [reservationId], references: [id])
   reservationId Int         @unique

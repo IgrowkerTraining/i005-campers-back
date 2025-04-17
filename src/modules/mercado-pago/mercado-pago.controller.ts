@@ -3,6 +3,7 @@ import { MercadoPagoService } from './mercado-pago.service';
 import { Request, Response } from 'express';
 import { NotificationMPType } from 'src/common/types/mercadoPago/notification';
 import { CampingGateway } from '../webSockets/camping.gateway';
+import { RefoundPaymentDto } from './dto/refound-payment.dto';
 
 @Controller('payment')
 export class MercadoPagoController {
@@ -28,7 +29,7 @@ export class MercadoPagoController {
   @Post('notification')
   async notificationPayment(@Req() req: Request, @Body() notification: NotificationMPType, @Res() res: Response) {
     if (notification.action === 'payment.created') {
-      this.mercadoPagoService.updateReservation(notification.data.id).then((data) => {
+      this.mercadoPagoService.paymentAccredited(notification.data.id).then((data) => {
         if (data) {
           this.campingGateway.notifyReservationPayment(data);
         }
@@ -36,5 +37,10 @@ export class MercadoPagoController {
     }
 
     return res.status(200).json({ message: 'OK' });
+  }
+
+  @Post('refound')
+  async paymentRefound(@Body() body: RefoundPaymentDto) {
+    await this.mercadoPagoService.paymentRefound(body.reservationId);
   }
 }

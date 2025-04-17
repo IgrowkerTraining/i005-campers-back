@@ -1,10 +1,28 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Query, Request, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  FileTypeValidator,
+  Get,
+  MaxFileSizeValidator,
+  Param,
+  ParseFilePipe,
+  Post,
+  Query,
+  Request,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { CreateCampingDto } from './dto/create-camping.dto';
 import { CampingsService } from './campings.service';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { createReviewDto } from './dto/create-review.dto';
-import { ReviewResponseDto } from './dto/review-response.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { Roles } from 'src/decorators/roles.decorators';
+import { Role } from 'src/common/enums/role.enum';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('campings')
 @ApiBearerAuth()
@@ -12,9 +30,45 @@ export class CampingsController {
   constructor(private readonly campingsService: CampingsService) {}
 
   @Post()
-  @UseGuards(AuthGuardGuard)
-  async create(@Request() req, @Body() createCampingDto: CreateCampingDto) {
-    return await this.campingsService.create(createCampingDto, req?.user.id);
+  @UseGuards(AuthGuardGuard, RolesGuard)
+  @Roles(Role.owner)
+  @UseInterceptors(FilesInterceptor('files'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+        createCampingDto: {
+          type: 'string',
+          example: '{"name": "John", "age": 30}',
+        },
+      },
+    },
+  })
+  async create(
+    @Request() req,
+    @Body() createCampingDto: string,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
+        ],
+      }),
+    )
+    files: Express.Multer.File[],
+  ) {
+    const a = JSON.parse(createCampingDto['createCampingDto']) as CreateCampingDto;
+
+    console.log(a, files);
+    return await this.campingsService.create(a, req?.user.id, files);
   }
 
   @Get()
@@ -26,6 +80,8 @@ export class CampingsController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuardGuard, RolesGuard)
+  @Roles(Role.owner)
   remove(@Param('id') id: string) {
     return this.campingsService.remove(+id);
   }
