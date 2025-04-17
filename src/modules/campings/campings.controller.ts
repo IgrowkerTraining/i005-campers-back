@@ -10,7 +10,6 @@ import {
   Post,
   Query,
   Request,
-  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -20,10 +19,10 @@ import { CampingsService } from './campings.service';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from 'src/decorators/roles.decorators';
-import { Role } from 'src/enums/role.enum';
+import { Role } from 'src/common/enums/role.enum';
 import { RolesGuard } from 'src/guards/roles.guard';
-import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('campings')
 @ApiBearerAuth()
