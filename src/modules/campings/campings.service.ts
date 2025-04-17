@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CampingResponseDto, CreateCampingDto, PaginatedResponseDto } from './dto/create-camping.dto';
 import { plainToInstance } from 'class-transformer';
 import { Camping, Prisma } from '@prisma/client';
 import { CampingGateway } from '../webSockets/camping.gateway';
+import { createReviewDto } from './dto/create-review.dto';
+import { ReviewResponseDto } from './dto/review-response.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
@@ -156,6 +158,68 @@ export class CampingsService {
       return plainToInstance(CampingResponseDto, createdCamping, {
         excludeExtraneousValues: true,
       });
+    });
+  }
+
+
+
+  // create one review
+  async createReviews(userId: string, createReviewDtos: createReviewDto[]): Promise<ReviewResponseDto[]> {
+    return Promise.all(
+      createReviewDtos.map(async (dto) => {
+        // Verificar que el camping existe
+        const camping = await this.prisma.camping.findUnique({ where: { id: dto.campingId } });
+        if (!camping) throw new NotFoundException(`Camping con ID ${dto.campingId} no encontrado`);
+
+        // Verificar reserva confirmada
+        const hasReservation = await this.prisma.reservation.findFirst({
+          where: { userId, campingId: dto.campingId, status: 'CONFIRMED' },
+        });
+        if (!hasReservation)
+          throw new ForbiddenException(`Debes tener una reserva confirmada para el camping ${dto.campingId}`);
+
+        // Crear reseña
+        return this.prisma.review.create({
+          data: {
+            campingId: dto.campingId,
+            userId,
+            name: dto.name,
+            comment: dto.comment,
+            rating: dto.rating,
+            profilePic: dto.profilePic,
+            date: dto.date,
+          },
+          select: {
+            id: true,
+            campingId: true,
+            name: true,
+            date: true,
+            comment: true,
+            rating: true,
+            profilePic: true,
+          },
+        });
+      }),
+    );
+  }
+
+
+
+  async getReviewsByCampingId(campingId: number): Promise<ReviewResponseDto[]> {
+    const camping = await this.prisma.camping.findUnique({ where: { id: campingId } });
+    if (!camping) throw new NotFoundException('Camping no encontrado');
+
+    return this.prisma.review.findMany({
+      where: { campingId },
+      select: {
+        id: true,
+        campingId: true,
+        name: true,
+        date: true,
+        comment: true,
+        rating: true,
+        profilePic: true,
+      },
     });
   }
 }
