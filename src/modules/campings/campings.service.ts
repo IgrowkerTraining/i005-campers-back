@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CampingResponseDto, CreateCampingDto, PaginatedResponseDto } from './dto/create-camping.dto';
 import { plainToInstance } from 'class-transformer';
@@ -7,6 +13,7 @@ import { CampingGateway } from '../webSockets/camping.gateway';
 import { createReviewDto } from './dto/create-review.dto';
 import { ReviewResponseDto } from './dto/review-response.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CreateFavouritesDto } from './dto/favourites-camping.dto';
 
 @Injectable()
 export class CampingsService {
@@ -161,8 +168,6 @@ export class CampingsService {
     });
   }
 
-
-
   // create one review
   async createReviews(userId: string, createReviewDtos: createReviewDto[]): Promise<ReviewResponseDto[]> {
     return Promise.all(
@@ -203,8 +208,6 @@ export class CampingsService {
     );
   }
 
-
-
   async getReviewsByCampingId(campingId: number): Promise<ReviewResponseDto[]> {
     const camping = await this.prisma.camping.findUnique({ where: { id: campingId } });
     if (!camping) throw new NotFoundException('Camping no encontrado');
@@ -221,5 +224,82 @@ export class CampingsService {
         profilePic: true,
       },
     });
+  }
+
+  async addFavourite(createFavouriteDto: CreateFavouritesDto): Promise<void> {
+    const { campingId, userId } = createFavouriteDto;
+
+    // Verifica que el camping existe
+    const camping = await this.prisma.camping.findUnique({ where: { id: campingId } });
+    if (!camping) {
+      throw new NotFoundException(`Camping con ID ${campingId} no encontrado`);
+    }
+
+    // Verifica que no exista ya el favorito
+    const exists = await this.prisma.favourites.findUnique({
+      where: {
+        userId_campingId: {
+          userId,
+          campingId,
+        },
+      },
+    });
+    if (exists) {
+      throw new BadRequestException('Este camping ya está en favoritos');
+    }
+
+    // Crea el favorito
+    await this.prisma.favourites.create({
+      data: {
+        userId,
+        campingId,
+      },
+    });
+  }
+
+  async removeFavourite(userId: string, campingId: number): Promise<void> {
+    const favourite = await this.prisma.favourites.findUnique({
+      where: {
+        userId_campingId: {
+          userId,
+          campingId,
+        },
+      },
+    });
+
+    if (!favourite) {
+      throw new NotFoundException('Favorito no encontrado');
+    }
+
+    await this.prisma.favourites.delete({
+      where: {
+        userId_campingId: {
+          userId,
+          campingId,
+        },
+      },
+    });
+  }
+
+  async getFavouritesByUser(userId: string) {
+    // Busca los favoritos del usuario y trae la info del camping asociado
+    const favourites = await this.prisma.favourites.findMany({
+      where: { userId },
+      include: {
+        camping: {
+          include: {
+            location: true,
+            media: true,
+            pricing: true,
+            amenities: true,
+            nearbyAttractions: true,
+            limitCamping: true,
+          },
+        },
+      },
+    });
+
+    // Devuelve solo la info de los campings
+    return favourites.map((fav) => fav.camping);
   }
 }

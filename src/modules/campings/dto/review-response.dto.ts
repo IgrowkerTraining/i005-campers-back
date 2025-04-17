@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
 
-
 export class ReviewResponseDto {
   @Expose()
   @ApiProperty({ example: 1 })
@@ -12,14 +11,13 @@ export class ReviewResponseDto {
   campingId: number;
 
   @Expose()
-  @ApiProperty({example: 'leoanrdo nf'})
+  @ApiProperty({ example: 'leoanrdo nf' })
   name: string;
 
   @Expose()
   @ApiProperty({ example: '2025-11-22' })
   @Transform(({ value }) => value.toISOString().split('T')[0])
   date: Date;
-
 
   @Expose()
   @ApiProperty({ example: 'muy bueno' })
@@ -32,6 +30,4 @@ export class ReviewResponseDto {
   @Expose()
   @ApiProperty({ example: 'perfil.jpg' })
   profilePic: string;
-
-
 }
