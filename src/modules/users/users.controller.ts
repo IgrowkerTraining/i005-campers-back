@@ -6,12 +6,12 @@ import { Role } from 'src/enums/role.enum';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
+@UseGuards(AuthGuardGuard)
 @Controller('users')
 @ApiBearerAuth()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(AuthGuardGuard)
   @Get()
   async findAll() {
     return await this.userService.findAll();
@@ -23,8 +23,6 @@ export class UserController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuardGuard, RolesGuard)
-  @Roles(Role.owner)
   async findById(@Param('id') id: string) {
     return await this.userService.findById(id);
   }
