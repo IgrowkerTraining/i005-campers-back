@@ -71,13 +71,54 @@ export class CloudinaryService {
   //   });
   // }
 
-  async uploadImagesToCloudinary(images: Express.Multer.File[]): Promise<string[]> {
-    this.checkValidImages(images);
-    const urls: string[] = [];
-    for (const image of images) {
-      const { secure_url } = await cloudinary.uploader.upload(image.path);
-      urls.push(secure_url);
+  // async uploadImagesToCloudinary(images: Express.Multer.File[]): Promise<string[]> {
+  //   this.checkValidImages(images);
+  //   const urls: string[] = [];
+  //   for (const image of images) {
+  //     const { secure_url } = await cloudinary.uploader.upload(image.path);
+  //     urls.push(secure_url);
+  //   }
+  //   return urls;
+  // }
+
+  async uploadFile(files: Express.Multer.File[]) {
+    const photoUrls: string[] = [];
+    try {
+      this.checkValidImages(files);
+
+      for (const file of files) {
+        await new Promise((resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({ resource_type: 'auto' }, (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                photoUrls.push(result.secure_url);
+                resolve(result.secure_url);
+              }
+            })
+            .end(file.buffer);
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      throw new HttpException('Error al intentar subir las fotos', HttpStatus.BAD_REQUEST);
     }
-    return urls;
+
+    return photoUrls;
+  }
+
+  async uploadFilesToCloudinary(files: Express.Multer.File[]): Promise<string[]> {
+    let photoUrls: string[] = [];
+
+    try {
+      this.checkValidImages(files);
+      photoUrls = await this.uploadFile(files);
+    } catch (error) {
+      console.error('Error al subir el archivo a Cloudinary:', error);
+      throw new HttpException('Error al subir el archivo a Cloudinary:', HttpStatus.BAD_REQUEST);
+    }
+
+    return photoUrls;
   }
 }

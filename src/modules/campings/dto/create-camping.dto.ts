@@ -266,11 +266,37 @@ export class CreateCampingDto {
   @IsNotEmpty()
   maxUsers: string;
 
-  @ApiProperty({ type: 'string', format: 'binary', required: false })
+  @ApiProperty({
+    description: 'Archivos de imágenes relacionados al evento',
+    type: 'array',
+    items: { type: 'string', format: 'binary' },
+  })
   @IsOptional()
-  @IsFile()
-  @HasMimeType(['image/jpeg', 'image/png'])
-  images?: MemoryStoredFile;
+  files?: Array<Express.Multer.File>;
+
+  // @ApiProperty({ type: 'string', format: 'binary', required: false })
+  // @IsOptional()
+  // @IsFile()
+  // @HasMimeType(['image/jpeg', 'image/png'])
+  // files?: MemoryStoredFile;
+
+  @ApiProperty({ type: MediaDto })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MediaDto)
+  media?: MediaDto[];
+
+  // @ApiProperty()
+  // @IsOptional()
+  // @IsArray()
+  // @ValidateNested({ each: true })
+  // images?: string[];
+  @ApiProperty()
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  imageUrls?: string[];
 
   @ApiProperty()
   @IsOptional()

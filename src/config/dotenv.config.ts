@@ -9,10 +9,10 @@ dotenv.config();
 // const MAX_SIZE_IMAGE = process.env.MAX_SIZE_IMAGE;
 
 const dotenvOptions = {
+  JWT_SECRET: process.env.JWT_SECRET,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_KEY_NAME: process.env.CLOUDINARY_API_KEY_NAME,
   CLOUDINARY_API_KEY_SECRET: process.env.CLOUDINARY_API_KEY_SECRET,
-  JWT_SECRET: process.env.JWT_SECRET,
   MAX_SIZE_IMAGE: process.env.MAX_SIZE_IMAGE,
 };
 

@@ -13,78 +13,78 @@ export class CampingsService {
     private readonly campingGateway: CampingGateway,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
-  async findAll(page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<CampingResponseDto>> {
-    const skip = (page - 1) * limit;
+  // async findAll(page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<CampingResponseDto>> {
+  //   const skip = (page - 1) * limit;
 
-    const [campings, total] = await Promise.all([
-      this.prisma.camping.findMany({
-        skip,
-        take: limit,
-        include: {
-          location: true,
-          media: true,
-          pricing: true,
-          amenities: true,
-          nearbyAttractions: true,
-          limitCamping: true,
-        },
-      }),
-      this.prisma.camping.count(),
-    ]);
+  //   const [campings, total] = await Promise.all([
+  //     this.prisma.camping.findMany({
+  //       skip,
+  //       take: limit,
+  //       include: {
+  //         location: true,
+  //         media: true,
+  //         pricing: true,
+  //         amenities: true,
+  //         nearbyAttractions: true,
+  //         limitCamping: true,
+  //       },
+  //     }),
+  //     this.prisma.camping.count(),
+  //   ]);
 
-    const response = {
-      data: plainToInstance(CampingResponseDto, campings, {
-        excludeExtraneousValues: true,
-      }),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+  //   const response = {
+  //     data: plainToInstance(CampingResponseDto, campings, {
+  //       excludeExtraneousValues: true,
+  //     }),
+  //     meta: {
+  //       total,
+  //       page,
+  //       limit,
+  //       totalPages: Math.ceil(total / limit),
+  //     },
+  //   };
 
-    return plainToInstance(PaginatedResponseDto<CampingResponseDto>, response, {
-      excludeExtraneousValues: true,
-    });
-  }
+  //   return plainToInstance(PaginatedResponseDto<CampingResponseDto>, response, {
+  //     excludeExtraneousValues: true,
+  //   });
+  // }
 
-  async remove(id: number): Promise<Camping> {
-    try {
-      const campingToDelete = await this.prisma.camping.findUnique({
-        where: { id },
-        include: {
-          location: true,
-          pricing: true,
-          amenities: true,
-          nearbyAttractions: true,
-          limitCamping: true,
-          media: true,
-        },
-      });
+  // async remove(id: number): Promise<Camping> {
+  //   try {
+  //     const campingToDelete = await this.prisma.camping.findUnique({
+  //       where: { id },
+  //       include: {
+  //         location: true,
+  //         pricing: true,
+  //         amenities: true,
+  //         nearbyAttractions: true,
+  //         limitCamping: true,
+  //         media: true,
+  //       },
+  //     });
 
-      if (!campingToDelete) {
-        throw new NotFoundException(`Camping con ID ${id} no encontrado`);
-      }
+  //     if (!campingToDelete) {
+  //       throw new NotFoundException(`Camping con ID ${id} no encontrado`);
+  //     }
 
-      await this.prisma.$transaction([
-        this.prisma.pricing.deleteMany({ where: { campingId: id } }),
-        this.prisma.nearbyAttraction.deleteMany({ where: { campingId: id } }),
-        this.prisma.amenity.deleteMany({ where: { campings: { some: { id } } } }),
-        this.prisma.media.deleteMany({ where: { campingId: id } }),
-        this.prisma.camping.delete({ where: { id } }),
-      ]);
+  //     await this.prisma.$transaction([
+  //       this.prisma.pricing.deleteMany({ where: { campingId: id } }),
+  //       this.prisma.nearbyAttraction.deleteMany({ where: { campingId: id } }),
+  //       this.prisma.amenity.deleteMany({ where: { campings: { some: { id } } } }),
+  //       this.prisma.media.deleteMany({ where: { campingId: id } }),
+  //       this.prisma.camping.delete({ where: { id } }),
+  //     ]);
 
-      return plainToInstance(CampingResponseDto, campingToDelete, {
-        excludeExtraneousValues: true,
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw new InternalServerErrorException(`Error al eliminar el camping: ${error.message}`);
-      }
-      throw error;
-    }
-  }
+  //     return plainToInstance(CampingResponseDto, campingToDelete, {
+  //       excludeExtraneousValues: true,
+  //     });
+  //   } catch (error) {
+  //     if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  //       throw new InternalServerErrorException(`Error al eliminar el camping: ${error.message}`);
+  //     }
+  //     throw error;
+  //   }
+  // }
 
   //   async create(data: CreateCampingDto, userId: string, media: Express.Multer.File[]): Promise<CampingResponseDto> {
   //     const { location, pricing = [], amenities = [], nearbyAttractions = [], limitCamping, ...rest } = data;
@@ -229,11 +229,21 @@ export class CampingsService {
   //   });
   // }
 
-  async create(data: CreateCampingDto, userId: string, mediaFiles: Express.Multer.File[]): Promise<CampingResponseDto> {
+  async create(data: CreateCampingDto, userId: string, files: Express.Multer.File[]): Promise<CampingResponseDto> {
     console.log('Data en el servicio:', data);
 
-    const { name, description, contactPhone, campingAddress, mapLink, pricePerNight, tarifa, maxTents, maxUsers } =
-      data;
+    const {
+      name,
+      description,
+      contactPhone,
+      campingAddress,
+      mapLink,
+      pricePerNight,
+      tarifa,
+      maxTents,
+      maxUsers,
+      ...rest
+    } = data;
 
     // Convertir los strings a los tipos de datos correctos
     const parsedPricePerNight = parseFloat(pricePerNight);
@@ -259,10 +269,10 @@ export class CampingsService {
 
     return this.prisma.$transaction(async (tx) => {
       // Subir las imágenes a Cloudinary
-      let mediaUrls: string[] = [];
+      let photoUrls: string[] = [];
 
-      if (mediaFiles && mediaFiles.length > 0) {
-        mediaUrls = await this.cloudinaryService.uploadImagesToCloudinary(mediaFiles);
+      if (files && files.length > 0) {
+        photoUrls = await this.cloudinaryService.uploadFilesToCloudinary(files);
       }
 
       const createdCamping = await tx.camping.create({
@@ -274,18 +284,35 @@ export class CampingsService {
           location: { create: location },
           pricing: { create: pricing },
           limitCamping: { create: limitCamping },
-          media: {
-            create: mediaUrls.map((url) => ({
-              url,
-              type: 'image', // O 'video' dependiendo del tipo de media
-            })),
-          },
+          // media: {
+          //   createMany: {
+          //     data: photoUrls.map((url) => ({
+          //       url,
+          //       type: 'image', // or 'video' depending on the type of media
+          //     })),
+          //   },
+          // },
+
+          // Agregar las URLs de las imagenes subidas a Cloudinary
+          // media: {
+          //   create: mediaUrls.map((url) => ({
+          //     url,
+          //     type: 'image', // O 'video' dependiendo del tipo de media
+          //   })),
+          // },
+
+          // media: {
+          //   create: mediaUrls.map((url) => ({
+          //     url,
+          //     type: 'image', // O 'video' dependiendo del tipo de media
+          //   })),
+          // },
         },
         include: {
           location: true,
           pricing: true,
           limitCamping: true,
-          media: true,
+          // media: true,
         },
       });
 

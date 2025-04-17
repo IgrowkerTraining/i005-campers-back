@@ -66,24 +66,28 @@ export class CampingsController {
   @Post()
   @UseGuards(AuthGuardGuard)
   @FormDataRequest()
-  @UseInterceptors(FileInterceptor('images'))
-  async create(@Request() req, @Body() createCampingDto: CreateCampingDto) {
+  @UseInterceptors(FileInterceptor('files'))
+  async create(
+    @Request() req,
+    @Body() createCampingDto: CreateCampingDto,
+    @UploadedFile() files?: Array<Express.Multer.File>,
+  ) {
     console.log('createCampingDto:', createCampingDto);
 
-    return await this.campingsService.create(createCampingDto, req?.user.id, req?.files);
+    return await this.campingsService.create(createCampingDto, req?.user.id, files);
   }
 
-  @Get()
-  async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
-    const pageNumber = Number(page);
+  // @Get()
+  // async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+  //   const pageNumber = Number(page);
 
-    const limitNumber = Number(limit);
+  //   const limitNumber = Number(limit);
 
-    return this.campingsService.findAll(pageNumber, limitNumber);
-  }
+  //   return this.campingsService.findAll(pageNumber, limitNumber);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.campingsService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.campingsService.remove(+id);
+  // }
 }

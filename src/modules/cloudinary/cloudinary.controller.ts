@@ -67,12 +67,12 @@ export class CloudinaryController {
 
   // Endpoint to upload multiple files
   @Post('upload')
-  @UseInterceptors(FilesInterceptor('images'))
+  @UseInterceptors(FilesInterceptor('files'))
   async uploadFiles(@UploadedFiles() files: Array<Express.Multer.File>) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No images uploaded');
     }
-    return await this.cloudinaryService.uploadImagesToCloudinary(files);
+    return await this.cloudinaryService.uploadFilesToCloudinary(files);
   }
 
   // // Endpoint to retrieve all images
