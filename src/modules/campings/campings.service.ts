@@ -4,12 +4,14 @@ import { CampingResponseDto, CreateCampingDto, PaginatedResponseDto } from './dt
 import { plainToInstance } from 'class-transformer';
 import { Camping, Prisma } from '@prisma/client';
 import { CampingGateway } from '../webSockets/camping.gateway';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class CampingsService {
   constructor(
     private prisma: PrismaService,
     private readonly campingGateway: CampingGateway,
+    private readonly CloudinaryService: CloudinaryService,
   ) {}
   async findAll(page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<CampingResponseDto>> {
     const skip = (page - 1) * limit;
@@ -84,8 +86,15 @@ export class CampingsService {
     }
   }
 
-  async create(data: CreateCampingDto, userId: string) {
+  async create(data: CreateCampingDto, userId: string, files: Express.Multer.File[]): Promise<Camping> {
     const { location, pricing = [], amenities = [], nearbyAttractions = [], limitCamping, ...rest } = data;
+
+    const promiseFile = files.map((k) => this.CloudinaryService.uploadFiles(k));
+
+    const response = await Promise.all(promiseFile);
+    console.log(response);
+
+    const urlArr = response.map((k) => k.url);
 
     return this.prisma.$transaction(async (tx) => {
       const createdCamping = await tx.camping.create({
@@ -119,9 +128,9 @@ export class CampingsService {
             }),
           },
           media: {
-            create: data.media.map((mediaDto) => ({
-              url: mediaDto.url,
-              type: mediaDto.type,
+            create: urlArr.map((mediaDto) => ({
+              url: mediaDto,
+              type: 'image',
             })),
           },
 
