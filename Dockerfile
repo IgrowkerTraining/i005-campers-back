@@ -1,31 +1,29 @@
 # Etapa 1: build
-FROM node:22.14.0-slim AS builder
+FROM node:22.14.0-alpine as builder
 
 WORKDIR /app
 
-# Instalar dependencias
+# Copiar dependencias e instalar
 COPY package*.json ./
 RUN npm install
 
-# Copiar el resto del código
+# Copiar el resto de archivos y construir la app
 COPY . .
-
-# Compilar el proyecto
 RUN npm run build
 
-# Etapa 2: runtime
-FROM node:22.14.0-slim
+# Etapa 2: producción
+FROM node:22.14.0-alpine as production
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --production
-
-# Copiar solo el código compilado
+# Copiar solo lo necesario desde el builder
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
 
-# Exponer el puerto por defecto de NestJS (3000)
+# Exponer el puerto por defecto de Nest
 EXPOSE 3000
 
+# Comando de inicio
 CMD ["node", "dist/main"]
 
