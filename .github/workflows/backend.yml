@@ -32,11 +32,13 @@ jobs:
       - name: Configurar Docker para Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      - name: Construir y subir imagen Docker
+      - name: Docker build image
         run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}
-          docker build -t $IMAGE .
-          docker push $IMAGE
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest .
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest 
 
       - name: Desplegar a Cloud Run
         run: |
