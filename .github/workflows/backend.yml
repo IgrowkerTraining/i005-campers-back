@@ -34,20 +34,10 @@ jobs:
 
       - name: Docker build image
         run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest .
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest .
 
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest 
-
-      - name: Desplegar a Cloud Run
-        run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image $IMAGE \
-            --region ${{ env.REGION }} \
-            --platform managed \
-            --allow-unauthenticated
-
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest
 
 
