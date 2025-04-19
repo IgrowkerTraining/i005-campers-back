@@ -38,10 +38,6 @@ jobs:
           docker stop backend || true
           docker rm backend || true
 
-      - name: Construir imagen Docker
-        run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest .
-
       - name: Ejecutar contenedor Docker
         run: |
           docker run -d \
