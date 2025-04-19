@@ -3,14 +3,17 @@ FROM node:22.14.0-alpine as builder
 
 WORKDIR /app
 
-# Copiar dependencias e instalar
-COPY package*.json prisma ./
+# Copiar dependencias y archivos de prisma
+COPY package*.json ./
+COPY prisma ./prisma
+
+# Instalar dependencias
 RUN npm install
 
-# Agregar el binaryTarget correcto en schema.prisma antes de este paso
+# Generar cliente Prisma con binarios correctos
 RUN npx prisma generate
 
-# Copiar el resto de archivos y construir la app
+# Copiar el resto de la aplicación y compilar
 COPY . .
 RUN npm run build
 
@@ -19,18 +22,19 @@ FROM node:22.14.0-alpine as production
 
 WORKDIR /app
 
-# Instalar OpenSSL necesario en producción
+# Instalar OpenSSL
 RUN apk add --no-cache openssl
 
-# Copiar solo lo necesario desde el builder
+# Copiar archivos necesarios desde builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Exponer el puerto por defecto de Nest
+# Exponer el puerto de Nest
 EXPOSE 3000
 
-# Comando de inicio
+# Iniciar la app
 CMD ["node", "dist/main"]
