@@ -1,4 +1,5 @@
-name: Deploy Backend
+
+name: Deploy backend
 
 on:
   push:
@@ -15,39 +16,35 @@ env:
   SERVICE_NAME: backend
 
 jobs:
-  deploy:
+  build-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clonar el código
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Autenticarse con GCP
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          project_id: ${{ env.PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY_BK }}
-          export_default_credentials: true
+          node-version: 22.14.0
 
-      - name: Configurar Docker para Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+      - name: Install dependencies
+        run: |
+          npm install
+      - name: Build NestJS project
+        run: |
+          npm run build
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_BK }}
 
+      - name: Configure Docker to use Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev
       - name: Docker build image
         run: |
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest .
-
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest .
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/cback:latest 
-
-      - name: Desplegar a Cloud Run
-        run: |
-          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.SERVICE_NAME }}
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image $IMAGE \
-            --region ${{ env.REGION }} \
-            --platform managed \
-            --allow-unauthenticated
-
-
-
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest 
