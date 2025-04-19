@@ -27,7 +27,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: i005-campers-back  
+        working-directory: /
 
     steps:
       - name: Checkout del código
