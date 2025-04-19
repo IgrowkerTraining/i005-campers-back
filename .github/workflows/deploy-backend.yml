@@ -12,6 +12,7 @@ on:
       - '.env'
       - 'package.json'
       - 'tsconfig*.json'
+
   workflow_dispatch:
   
   workflow_run:
@@ -21,7 +22,7 @@ on:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
     defaults:
@@ -32,15 +33,25 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v3
 
-      - name: Build y Run del contenedor
+      - name: Detener contenedor previo (si existe)
         run: |
-          echo "Deteniendo contenedor previo (si existe)..."
           docker stop backend || true
           docker rm backend || true
 
-          echo "Ejecutando contenedor..."
+      - name: Construir imagen Docker
+        run: |
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest .
+
+      - name: Ejecutar contenedor Docker
+        run: |
           docker run -d \
             --name backend \
             -p 3000:3000 \
             ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest
+
+      - name: Registrar hora del despliegue
+        run: |
+          echo "Despliegue completado el:"
+          date
+
 
