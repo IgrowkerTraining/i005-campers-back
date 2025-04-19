@@ -35,11 +35,8 @@ jobs:
       - name: Build y Run del contenedor
         run: |
           echo "Deteniendo contenedor previo (si existe)..."
-          docker stop ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest || true
-          docker rm ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest || true
-
-          echo "Construyendo nueva imagen..."
-          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest .
+          docker stop backend || true
+          docker rm backend || true
 
           echo "Ejecutando contenedor..."
           docker run -d \
