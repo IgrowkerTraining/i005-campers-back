@@ -31,7 +31,7 @@ export class LocationDto {
 }
 
 export class PricingDto {
-  @ApiProperty()
+  @ApiProperty({ required: true, description: 'Precio por noche' })
   @IsNotEmpty()
   @IsNumber()
   pricePerNight: number;
@@ -102,12 +102,6 @@ export class SearchCampingDto {
   @IsString()
   tarifa?: string;
 
-  @ApiProperty({ required: false, type: LocationDto, description: 'Ubicación del camping' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => LocationDto)
-  location?: LocationDto;
-
   @ApiProperty({ required: false, description: 'Direccion del camping' })
   @IsOptional()
   @IsString()
@@ -119,26 +113,12 @@ export class SearchCampingDto {
   @IsString()
   mapLink?: string;
 
-  // @ApiProperty({ required: false, type: [AmenityDto], description: 'Servicios disponibles' })
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // @Type(() => AmenityDto)
-  // amenities?: AmenityDto[];
-
   @ApiProperty({ required: false, type: [AmenityDto], description: 'Servicios disponibles' })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   amenities?: string[];
-
-  // @ApiProperty({ required: false, type: [NearbyAttractionDto], description: 'Atracciones cercanas' })
-  // @IsOptional()
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // @Type(() => NearbyAttractionDto)
-  // nearbyAttractions?: NearbyAttractionDto[];
 
   @ApiProperty({ required: false, type: [NearbyAttractionDto], description: 'Atracciones cercanas' })
   @IsOptional()
