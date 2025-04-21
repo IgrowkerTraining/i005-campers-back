@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { CampingSearchService } from './campings-search.service';
 import { SearchCampingDto } from './dto/search-camping.dto';
-import { ApiBearerAuth, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
 
 @Controller('campings/search')
@@ -22,10 +22,10 @@ export class CampingsSearchController {
   constructor(private readonly searchService: CampingSearchService) {}
 
   @Get()
-  // @UseGuards(AuthGuardGuard)
-  // @ApiTags('Campings - Search')
+  @UseGuards(AuthGuardGuard)
+  @ApiTags('Campings - Search')
   @UseInterceptors(ClassSerializerInterceptor)
-  // @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
+  @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   @ApiOkResponse({
     description: 'Returns filtered campings with detailed information',
     schema: {

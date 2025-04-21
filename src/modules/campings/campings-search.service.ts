@@ -26,7 +26,8 @@ export class CampingSearchService {
   };
 
   async searchCampings(filters: SearchCampingDto) {
-    let { name, location, pricing, amenities, nearbyAttractions, maxUsers, maxTents } = filters;
+    let { name, campingAddress, mapLink, amenities, pricePerNight, tarifa, nearbyAttractions, maxUsers, maxTents } =
+      filters;
 
     const cacheKey = generateCacheKey(filters);
     const resultCache = await this.cacheManager.get(cacheKey);

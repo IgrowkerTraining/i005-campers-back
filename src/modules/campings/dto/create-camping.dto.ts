@@ -10,7 +10,6 @@ import {
   IsIn,
   ValidateIf,
 } from 'class-validator';
-import { Amenity, Location, Pricing } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { IsSanitizedHtml } from 'src/decorators/is-sanitizated-html.decorator';

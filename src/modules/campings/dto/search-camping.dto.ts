@@ -102,19 +102,6 @@ export class SearchCampingDto {
   @IsString()
   tarifa?: string;
 
-  @ApiProperty({ required: false, type: LocationDto, description: 'Ubicación del camping' })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => LocationDto)
-  location?: LocationDto;
-
-  // @ApiProperty({ required: false, type: [LocationDto], description: 'Ubicación del camping' })
-  // @IsOptional()
-  // @IsArray()
-  // @IsString({ each: true })
-  // @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  // location?: string[];
-
   @ApiProperty({ required: false, description: 'Direccion del camping' })
   @IsOptional()
   @IsString()
