@@ -7,18 +7,25 @@ import {
   HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { CampingSearchService } from './campings-search.service';
 import { SearchCampingDto } from './dto/search-camping.dto';
-import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
 
-@ApiTags('Campings - Search')
 @Controller('campings/search')
-@UseInterceptors(ClassSerializerInterceptor)
+@ApiBearerAuth()
 export class CampingsSearchController {
   constructor(private readonly searchService: CampingSearchService) {}
 
   @Get()
+  @UseGuards(AuthGuardGuard)
+  @ApiTags('Campings - Search')
+  @UseInterceptors(ClassSerializerInterceptor)
+  @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   @ApiOkResponse({
     description: 'Returns filtered campings with detailed information',
     schema: {
@@ -33,7 +40,7 @@ export class CampingsSearchController {
     },
   })
   @ApiQuery({ name: 'name', required: false, type: String })
-  @ApiQuery({ name: 'campiningAddress', required: false, type: String })
+  @ApiQuery({ name: 'campingAddress', required: false, type: String })
   @ApiQuery({ name: 'mapLink', required: false, type: String })
   @ApiQuery({ name: 'pricePerNight', required: false, type: Number })
   @ApiQuery({ name: 'tarifa', required: false, type: String })
