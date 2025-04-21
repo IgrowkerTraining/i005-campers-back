@@ -51,12 +51,12 @@ jobs:
       - name: Creando archivo .env
         run: |
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > /tmp/backend.env
-          echo "ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}" >> /tmp/backend.env
-          echo "CHECKOUT_URL: ${{ secrets.CHECKOUT_URL }}" >> /tmp/backend.env
-          echo "JWT_SECRET: ${{ secrets.JWT_SECRET }}" >> /tmp/backend.env
-          echo "CLOUNDINARY_NAME: ${{ secrets.CLOUDINARY_NAME }}" >> /tmp/backend.env
-          echo "CLOUNDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}" >> /tmp/backend.env
-          echo "CLOUNDINARY_API_SECRET: ${{ secrets.CLOUNDINARY_API_SECRET }}" >> /tmp/backend.env
+          echo "ACCESS_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> /tmp/backend.env
+          echo "CHECKOUT_URL=${{ secrets.CHECKOUT_URL }}" >> /tmp/backend.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> /tmp/backend.env
+          echo "CLOUNDINARY_NAME=${{ secrets.CLOUDINARY_NAME }}" >> /tmp/backend.env
+          echo "CLOUNDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}" >> /tmp/backend.env
+          echo "CLOUNDINARY_API_SECRET=${{ secrets.CLOUNDINARY_API_SECRET }}" >> /tmp/backend.env
 
       - name: Ejecutar contenedor Docker
         run: |
