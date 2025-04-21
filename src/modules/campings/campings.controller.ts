@@ -9,6 +9,7 @@ import {
   Param,
   ParseFilePipe,
   Post,
+  Put,
   Query,
   Request,
   UploadedFiles,
@@ -29,6 +30,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { ReviewResponseDto } from './dto/review-response.dto';
 import { createReviewDto } from './dto/create-review.dto';
 import { CreateFavouritesDto } from './dto/favourites-camping.dto';
+import { UpdateCampingDto } from './dto/update-camping.dto';
 
 @Controller('Campings')
 @ApiBearerAuth()
@@ -98,6 +100,59 @@ export class CampingsController {
   remove(@Param('id') id: string) {
     return this.campingsService.remove(+id);
   }
+
+  @Put(':id')
+  @UseGuards(AuthGuardGuard, RolesGuard)
+  @Roles(Role.owner)
+  @UseInterceptors(FilesInterceptor('files'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+        updateCampingDto: {
+          type: 'string',
+          example: '{"name": "Updated Name", "description": "Updated Description"}',
+        },
+      },
+    },
+  })
+  async update(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() updateCampingDto: string,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    if (files && files.length > 0) {
+      const maxFileSize = 1024 * 1024 * 4; // 4MB
+      const allowedFileTypes = ['.png', '.jpeg', '.jpg'];
+
+      for (const file of files) {
+        const fileSizeValidator = new MaxFileSizeValidator({ maxSize: maxFileSize });
+        if (!fileSizeValidator.isValid(file)) {
+          throw new BadRequestException(`File size exceeds the limit of ${maxFileSize / (1024 * 1024)} MB`);
+        }
+
+        const fileTypeValidator = new FileTypeValidator({ fileType: allowedFileTypes.join('|') });
+        if (!fileTypeValidator.isValid(file)) {
+          throw new BadRequestException(`Invalid file type. Allowed types are ${allowedFileTypes.join(', ')}`);
+        }
+      }
+    }
+
+    const parsedDto = JSON.parse(updateCampingDto['updateCampingDto']) as UpdateCampingDto;
+    return await this.campingsService.update(Number(id), parsedDto, req.user.id, files);
+  }
+
+  // createReviews
+
   @Post(':id/reviews')
   @ApiTags('Campings - Create Reviews')
   @UseGuards(AuthGuardGuard)

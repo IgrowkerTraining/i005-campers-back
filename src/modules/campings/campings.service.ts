@@ -14,6 +14,7 @@ import { createReviewDto } from './dto/create-review.dto';
 import { ReviewResponseDto } from './dto/review-response.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateFavouritesDto } from './dto/favourites-camping.dto';
+import { UpdateCampingDto } from './dto/update-camping.dto';
 
 @Injectable()
 export class CampingsService {
@@ -166,6 +167,189 @@ export class CampingsService {
         excludeExtraneousValues: true,
       });
     });
+  }
+
+  async update(id: number, data: UpdateCampingDto, userId: string, files?: Express.Multer.File[]): Promise<Camping> {
+    const { location, pricing, amenities, nearbyAttractions, limitCamping, ...rest } = data;
+
+    const camping = await this.prisma.camping.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        location: true,
+        pricing: true,
+        amenities: true,
+        nearbyAttractions: true,
+        limitCamping: true,
+        media: true,
+      },
+    });
+
+    if (!camping) {
+      throw new NotFoundException(`Camping with ID ${id} not found`);
+    }
+
+    if (camping.userId !== userId) {
+      throw new ForbiddenException('You do not have permission to update this camping');
+    }
+
+    const updatePromises: any[] = [];
+
+    const transaction = await this.prisma.$transaction(async (tx) => {
+      // Outer transaction
+
+      if (files && files.length > 0) {
+        // Eliminar medios existentes solo si hay nuevos archivos
+        await tx.media.deleteMany({
+          where: { campingId: id },
+        });
+
+        const promiseFile = files.map((k) => this.CloudinaryService.uploadFiles(k));
+        const response = await Promise.all(promiseFile);
+        const urlArr = response.map((k) => k.url);
+
+        updatePromises.push(
+          tx.media.createMany({
+            data: urlArr.map((url) => ({
+              url: url,
+              type: 'image',
+              campingId: id,
+            })),
+          }),
+        );
+      }
+
+      if (location) {
+        updatePromises.push(
+          tx.location.update({
+            where: { id: camping.locationId },
+            data: { ...location },
+          }),
+        );
+      }
+
+      if (pricing) {
+        // Delete existing pricing records for the camping
+        await tx.pricing.deleteMany({
+          where: {
+            campingId: id,
+          },
+        });
+
+        // Create new pricing records for the camping
+        updatePromises.push(
+          tx.pricing.createMany({
+            data: pricing.map((price) => ({
+              ...price,
+              campingId: id,
+              tarifa: price.tarifa || 'carpa', // provide default value
+              pricePerNight: price.pricePerNight !== undefined ? price.pricePerNight : 0,
+            })),
+          }),
+        );
+      }
+
+      if (amenities) {
+        // Disconnect all existing amenities
+        updatePromises.push(
+          tx.camping.update({
+            where: { id: id },
+            data: {
+              amenities: {
+                set: [], // Disconnect all
+              },
+            },
+          }),
+        );
+
+        // Connect the new amenities
+        const amenityConnectOrCreate = amenities.map((amenity) => {
+          if (amenity.id) {
+            return {
+              where: { id: amenity.id },
+              create: {
+                name: `TEMP-${amenity.id}`,
+                available: true,
+              },
+            };
+          }
+          return {
+            where: { id: -1 },
+            create: {
+              name: amenity.name!,
+              available: amenity.available ?? true,
+            },
+          };
+        });
+
+        updatePromises.push(
+          tx.camping.update({
+            where: { id: id },
+            data: {
+              amenities: {
+                connectOrCreate: amenityConnectOrCreate,
+              },
+            },
+          }),
+        );
+      }
+
+      if (nearbyAttractions) {
+        // Delete existing nearby attractions for the camping
+        await tx.nearbyAttraction.deleteMany({
+          where: {
+            campingId: id,
+          },
+        });
+
+        // Create new nearby attractions for the camping
+        updatePromises.push(
+          tx.nearbyAttraction.createMany({
+            data: nearbyAttractions.map((attraction) => ({
+              ...attraction,
+              campingId: id,
+              name: attraction.name || 'Default Attraction Name', // provide default value
+            })),
+          }),
+        );
+      }
+
+      if (limitCamping) {
+        updatePromises.push(
+          tx.limitCamping.update({
+            where: { id: camping.limitCampingId },
+            data: { ...limitCamping },
+          }),
+        );
+      }
+
+      updatePromises.push(
+        tx.camping.update({
+          where: { id: id },
+          data: { ...rest },
+        }),
+      );
+
+      await Promise.all(updatePromises);
+
+      const updatedCamping = await tx.camping.findUnique({
+        where: { id },
+        include: {
+          location: true,
+          pricing: true,
+          amenities: true,
+          nearbyAttractions: true,
+          limitCamping: true,
+          media: true,
+        },
+      });
+
+      return plainToInstance(CampingResponseDto, updatedCamping, {
+        excludeExtraneousValues: true,
+      });
+    });
+
+    return transaction;
   }
 
   // create one review
