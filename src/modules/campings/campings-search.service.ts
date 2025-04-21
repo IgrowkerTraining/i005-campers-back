@@ -52,9 +52,6 @@ export class CampingSearchService {
           : []),
         ...(filters.mapLink ? [{ location: { mapLink: { contains: filters.mapLink, mode: 'insensitive' } } }] : []),
 
-        ...(filters.pricePerNight ? [{ pricing: { some: { pricePerNight: Number(filters.pricePerNight) } } }] : []),
-        ...(filters.tarifa ? [{ pricing: { some: { tarifa: filters.tarifa } } }] : []),
-
         ...(filters.amenities
           ? filters.amenities.map((amenity) => ({
               amenities: {
@@ -67,6 +64,22 @@ export class CampingSearchService {
               },
             }))
           : []),
+
+        ...(filters.pricePerNight || filters.tarifa
+          ? [
+              {
+                pricing: {
+                  some: {
+                    AND: [
+                      filters.pricePerNight ? { pricePerNight: Number(filters.pricePerNight) } : {},
+                      filters.tarifa ? { tarifa: filters.tarifa } : {},
+                    ],
+                  },
+                },
+              },
+            ]
+          : []),
+
         ...(filters.nearbyAttractions
           ? filters.nearbyAttractions.map((attraction) => ({
               nearbyAttractions: {

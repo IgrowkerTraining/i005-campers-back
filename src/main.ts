@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from './common/exception.filter';
 import { ValidationPipe } from '@nestjs/common';
-import  helmet from 'helmet';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,9 +12,10 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transformOptions:{
+      // transform: true,
+      transformOptions: {
         enableImplicitConversion: true,
-      }
+      },
     }),
   );
 
