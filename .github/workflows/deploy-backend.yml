@@ -25,6 +25,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL}}
+
     defaults:
       run:
         working-directory: /
@@ -38,10 +41,15 @@ jobs:
           docker stop backend || true
           docker rm backend || true
 
+      - name: Creando archivo .env
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend.env
+
       - name: Ejecutar contenedor Docker
         run: |
           docker run -d \
             --name backend \
+            --env-file backend.env \
             -p 3000:3000 \
             ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest
 
