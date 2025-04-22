@@ -1,8 +1,12 @@
-import { Injectable, NotAcceptableException } from '@nestjs/common';
+import { Inject, Injectable, NotAcceptableException } from '@nestjs/common';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LimitCamping, Reservation } from '@prisma/client';
+import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
+import { decimalToSexagesimal } from 'geolib';
 
 interface ReservationDataType {
   campingId: number;
@@ -14,14 +18,19 @@ interface ReservationDataType {
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly cachePrefixKey = 'reservations:';
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async create(createReservationDto: CreateReservationDto) {
     const { campingId, startDate, endDate, peopleCount, tentsCount } = createReservationDto;
 
-    if (startDate > endDate) {
-      throw new NotAcceptableException('La fecha de inicio de reserva no puede ser mayor a la de finalizacion');
-    }
+    const setStartDate = new Date(startDate).toISOString();
+    const setEndDate = new Date(endDate).toISOString();
+
+    this.checkDates(setStartDate, setEndDate);
 
     const { limitCamping } = await this.prisma.camping.findFirstOrThrow({
       where: {
@@ -41,9 +50,6 @@ export class ReservationsService {
       throw new NotAcceptableException('La reserva supera el limite personas o carpas permitidos en el camping');
     }
 
-    const setStartDate = new Date(startDate).toISOString();
-    const setEndDate = new Date(endDate).toISOString();
-
     const availability = await this.checkAvailability({
       campingId,
       startDate: setStartDate,
@@ -59,8 +65,15 @@ export class ReservationsService {
       );
     }
 
+    this.cacheManager.del(`${this.cachePrefixKey}${campingId}`);
+
     return this.prisma.reservation.create({
-      data: { ...createReservationDto, startDate: setStartDate, endDate: setEndDate },
+      data: {
+        ...createReservationDto,
+        startDate: setStartDate,
+        endDate: setEndDate,
+        status: RESERVATION_STATUS.PENDING,
+      },
     });
   }
 
@@ -68,12 +81,22 @@ export class ReservationsService {
     return this.prisma.reservation.findMany();
   }
 
-  findOne(id: number) {
-    return this.prisma.reservation.findFirstOrThrow({ where: { id } });
+  async findOne(id: number): Promise<Reservation | null> {
+    return await this.prisma.reservation.findFirst({ where: { id } });
   }
 
-  findByCampingId(campingId: number) {
-    return this.prisma.reservation.findMany({ where: { campingId: campingId } });
+  async findByCampingId(campingId: number): Promise<Reservation[]> {
+    const resultCache = await this.cacheManager.get<Reservation[]>(`${this.cachePrefixKey}${campingId}`);
+
+    if (resultCache) {
+      return resultCache;
+    }
+
+    const response = await this.prisma.reservation.findMany({ where: { campingId: campingId } });
+
+    await this.cacheManager.set<Reservation[]>(`${this.cachePrefixKey}${campingId}`, response);
+
+    return response;
   }
 
   update(id: number, updateReservationDto: UpdateReservationDto) {
@@ -97,6 +120,9 @@ export class ReservationsService {
         },
         endDate: {
           gte: new Date(startDate).toISOString(),
+        },
+        status: {
+          not: RESERVATION_STATUS.CANCELLED,
         },
       },
     });
@@ -149,5 +175,15 @@ export class ReservationsService {
       }
     }
     return true;
+  }
+
+  private checkDates(start: string, end: string) {
+    if (start >= end) {
+      throw new NotAcceptableException('La fecha de inicio de reserva debe ser menor a la de finalizacion');
+    }
+
+    if (start.split('T')[0] < new Date().toISOString().split('T')[0]) {
+      throw new NotAcceptableException('No se pueden generar reservas para dias pasados');
+    }
   }
 }

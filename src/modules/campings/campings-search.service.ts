@@ -1,82 +1,144 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SearchCampingDto } from './dto/search-camping.dto';
 import { Prisma } from '@prisma/client';
+import { Cache } from 'cache-manager';
+
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { generateCacheKey } from 'src/common/keyCache.generate';
 
 @Injectable()
 export class CampingSearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
-  private campingWithDetails = Prisma.validator<Prisma.CampingDefaultArgs>()({
+  private readonly campingWithDetails = {
     include: {
-      amenities: true,
       location: true,
       pricing: true,
+      amenities: true,
       nearbyAttractions: true,
+      media: true,
+      limitCamping: true,
     },
-  });
+  };
 
   async searchCampings(filters: SearchCampingDto) {
-    const { location, region, minPrice, maxPrice, amenities, proximityToNature, page = 1, limit = 10 } = filters;
+    let { name, campingAddress, mapLink, amenities, pricePerNight, tarifa, nearbyAttractions, maxUsers, maxTents } =
+      filters;
 
-    const where: Prisma.CampingWhereInput = {
+    const cacheKey = generateCacheKey(filters);
+    const resultCache = await this.cacheManager.get(cacheKey);
+
+    if (resultCache) {
+      return resultCache;
+    }
+
+    if (filters.amenities && !Array.isArray(filters.amenities)) {
+      filters.amenities = [filters.amenities];
+    }
+
+    if (filters.nearbyAttractions && !Array.isArray(filters.nearbyAttractions)) {
+      filters.nearbyAttractions = [filters.nearbyAttractions];
+    }
+
+    let where: Prisma.CampingWhereInput = {
       AND: [
-        location
-          ? {
-              OR: [
-                { name: { contains: location, mode: 'insensitive' } },
-                {
-                  location: {
-                    city: { contains: location, mode: 'insensitive' },
+        ...(filters.name ? [{ name: { contains: filters.name, mode: 'insensitive' } }] : []),
+
+        ...(filters.campingAddress
+          ? [{ location: { campingAddress: { contains: filters.campingAddress, mode: 'insensitive' } } }]
+          : []),
+        ...(filters.mapLink ? [{ location: { mapLink: { contains: filters.mapLink, mode: 'insensitive' } } }] : []),
+
+        ...(filters.amenities
+          ? filters.amenities.map((amenity) => ({
+              amenities: {
+                some: {
+                  name: {
+                    equals: amenity,
+                    mode: 'insensitive',
                   },
                 },
-              ],
-            }
-          : {},
-        region ? { location: { region: { contains: region, mode: 'insensitive' } } } : {},
-        minPrice ? { pricing: { some: { pricePerNight: { gte: minPrice } } } } : {},
-        maxPrice ? { pricing: { some: { pricePerNight: { lte: maxPrice } } } } : {},
-        amenities?.length ? { amenities: { some: { name: { in: amenities } } } } : {},
-        proximityToNature
-          ? {
-              nearbyAttractions: {
-                some: { distance: { lte: proximityToNature } },
               },
-            }
-          : {},
-      ],
+            }))
+          : []),
+
+        ...(filters.pricePerNight || filters.tarifa
+          ? [
+              {
+                pricing: {
+                  some: {
+                    AND: [
+                      filters.pricePerNight ? { pricePerNight: Number(filters.pricePerNight) } : {},
+                      filters.tarifa ? { tarifa: filters.tarifa } : {},
+                    ],
+                  },
+                },
+              },
+            ]
+          : []),
+
+        ...(filters.nearbyAttractions
+          ? filters.nearbyAttractions.map((attraction) => ({
+              nearbyAttractions: {
+                some: {
+                  name: {
+                    equals: attraction,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            }))
+          : []),
+        ...(filters.maxUsers ? [{ limitCamping: { maxUsers: Number(filters.maxUsers) } }] : []),
+        ...(filters.maxTents ? [{ limitCamping: { maxTents: Number(filters.maxTents) } }] : []),
+      ].filter(Boolean) as Prisma.CampingWhereInput[],
     };
 
-    return this.prisma.camping.findMany({
-      ...this.campingWithDetails,
-      where,
-      skip: (page - 1) * limit,
-      take: +limit,
-      orderBy: {
-        pricing: { _count: 'asc' },
-      },
-    });
-  }
+    const [campings, total] = await Promise.all([
+      this.prisma.camping.findMany({
+        ...this.campingWithDetails,
+        where,
+        skip: ((Number(filters.page) || 1) - 1) * (Number(filters.limit) || 10),
+        take: Number(filters.limit) || 10,
+        orderBy: {
+          id: 'asc',
+        },
+      }),
+      this.prisma.camping.count({ where }),
+    ]);
 
-  async findNearby(lat: number, lng: number, radius: number) {
-    return this.prisma.$queryRaw`
-      SELECT 
-        c.*,
-        ST_Distance(
-          ST_MakePoint(${lng}, ${lat})::geography,
-          ST_MakePoint(l.longitude, l.latitude)::geography
-        ) as distance
-      FROM 
-        "Camping" c
-      JOIN 
-        "Location" l ON c."locationId" = l.id
-      WHERE 
-        ST_DWithin(
-          ST_MakePoint(${lng}, ${lat})::geography,
-          ST_MakePoint(l.longitude, l.latitude)::geography,
-          ${radius * 1000}
-        )
-      ORDER BY distance
-    `;
+    if (campings.length === 0) {
+      throw new NotFoundException('No campings found with the specified criteria.');
+    }
+
+    const transformedCampings = campings.map((camping) => ({
+      id: camping.id,
+      name: camping.name,
+      description: camping.description,
+      location: camping.location,
+      contactPhone: camping.contactPhone,
+      media: camping.media,
+      pricing: camping.pricing,
+      amenities: camping.amenities,
+      nearbyAttractions: camping.nearbyAttractions,
+      limitCamping: camping.limitCamping,
+    }));
+
+    const result = {
+      data: transformedCampings,
+      pagination: {
+        total,
+        page: Number(filters.page) || 1,
+        limit: Number(filters.limit) || 10,
+        totalPages: Math.ceil(total / (Number(filters.limit) || 10)),
+      },
+    };
+
+    await this.cacheManager.set(cacheKey, result, 30000);
+    return result;
   }
 }

@@ -1,0 +1,50 @@
+
+name: Deploy backend
+
+on:
+  push:
+    branches: 
+      - main 
+      - develop 
+      - 'feature/*'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: training-batch-05
+  REGION: us-east1
+  ARTIFACT_REPO: campers-back
+  SERVICE_NAME: backend
+
+jobs:
+  build-push-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22.14.0
+
+      - name: Install dependencies
+        run: |
+          npm install
+      - name: Build NestJS project
+        run: |
+          npm run build
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_BK }}
+
+      - name: Configure Docker to use Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev
+      - name: Docker build image
+        run: |
+          docker build -t ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest .
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ secrets.ARTIFACT_REGISTRY_URL }}/backend:latest 
