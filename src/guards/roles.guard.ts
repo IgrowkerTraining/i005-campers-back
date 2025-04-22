@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { ROLES_KEY } from 'src/decorators/roles.decorators';
@@ -19,9 +19,14 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
+
+    // if (!user) {
+    //   throw new ForbiddenException('Not authenticated');
+    // }
     const validate = requiredRoles.some((role) => user?.roles?.includes(role));
 
-    if (!validate) throw new UnauthorizedException(`You don't have permission to access`);
+    if (!validate)
+      throw new ForbiddenException(`Forbidden. Only ${requiredRoles}s are allowed to create/delete campings`);
 
     return validate;
   }

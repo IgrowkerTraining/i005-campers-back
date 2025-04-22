@@ -18,7 +18,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof PrismaClientValidationError) {
       status = HttpStatus.BAD_REQUEST;
-      message = `Error de validación: ${exception.message}`;
+      message = `validation error: ${exception.message}`;
       name = exception.name;
       stack = exception.stack;
     } else if (exception instanceof HttpException) {
