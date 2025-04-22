@@ -32,7 +32,7 @@ import { createReviewDto } from './dto/create-review.dto';
 import { CreateFavouritesDto } from './dto/favourites-camping.dto';
 import { UpdateCampingDto } from './dto/update-camping.dto';
 
-@Controller('Campings')
+@Controller('campings')
 @ApiBearerAuth()
 export class CampingsController {
   constructor(private readonly campingsService: CampingsService) {}

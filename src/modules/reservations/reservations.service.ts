@@ -6,6 +6,7 @@ import { LimitCamping, Reservation } from '@prisma/client';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
+import { decimalToSexagesimal } from 'geolib';
 
 interface ReservationDataType {
   campingId: number;
@@ -26,9 +27,10 @@ export class ReservationsService {
   async create(createReservationDto: CreateReservationDto) {
     const { campingId, startDate, endDate, peopleCount, tentsCount } = createReservationDto;
 
-    if (startDate > endDate) {
-      throw new NotAcceptableException('La fecha de inicio de reserva no puede ser mayor a la de finalizacion');
-    }
+    const setStartDate = new Date(startDate).toISOString();
+    const setEndDate = new Date(endDate).toISOString();
+
+    this.checkDates(setStartDate, setEndDate);
 
     const { limitCamping } = await this.prisma.camping.findFirstOrThrow({
       where: {
@@ -47,9 +49,6 @@ export class ReservationsService {
     if (tentsCount > limitCamping.maxTents || peopleCount > limitCamping.maxUsers) {
       throw new NotAcceptableException('La reserva supera el limite personas o carpas permitidos en el camping');
     }
-
-    const setStartDate = new Date(startDate).toISOString();
-    const setEndDate = new Date(endDate).toISOString();
 
     const availability = await this.checkAvailability({
       campingId,
@@ -176,5 +175,15 @@ export class ReservationsService {
       }
     }
     return true;
+  }
+
+  private checkDates(start: string, end: string) {
+    if (start >= end) {
+      throw new NotAcceptableException('La fecha de inicio de reserva debe ser menor a la de finalizacion');
+    }
+
+    if (start.split('T')[0] < new Date().toISOString().split('T')[0]) {
+      throw new NotAcceptableException('No se pueden generar reservas para dias pasados');
+    }
   }
 }
