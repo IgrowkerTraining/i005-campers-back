@@ -3,17 +3,16 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from './common/exception.filter';
 
-import compression from 'compression';
+import compression = require('compression');
 
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.use(compression())
-  
+  app.use(compression());
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -57,4 +56,3 @@ bootstrap();
 function compresion(): any {
   throw new Error('Function not implemented.');
 }
-
