@@ -33,14 +33,15 @@ import { CreateFavouritesDto } from './dto/favourites-camping.dto';
 import { UpdateCampingDto } from './dto/update-camping.dto';
 
 @Controller('campings')
+@ApiTags('Campings')
 @ApiBearerAuth()
 export class CampingsController {
   constructor(private readonly campingsService: CampingsService) {}
 
   @Post()
-  @ApiTags('Campings - Create')
-  @UseGuards(AuthGuardGuard)
+  @UseGuards(AuthGuardGuard, RolesGuard)
   @Roles(Role.owner)
+  @ApiOperation({ summary: 'Create a new camping' })
   @UseInterceptors(FilesInterceptor('files'))
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   @ApiConsumes('multipart/form-data')
@@ -82,8 +83,8 @@ export class CampingsController {
   }
 
   @Get()
-  @ApiTags('Campings - Search All Campings')
   @UseGuards(AuthGuardGuard)
+  @ApiOperation({ summary: 'Get all campings' })
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   async findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
     const pageNumber = Number(page);
@@ -93,10 +94,10 @@ export class CampingsController {
   }
 
   @Delete(':id')
-  @ApiTags('Campings - Delete One camping')
   @UseGuards(AuthGuardGuard, RolesGuard)
-  @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   @Roles(Role.owner)
+  @ApiOperation({ summary: 'Delete one camping' })
+  @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   remove(@Param('id') id: string) {
     return this.campingsService.remove(+id);
   }
@@ -104,6 +105,7 @@ export class CampingsController {
   @Put(':id')
   @UseGuards(AuthGuardGuard, RolesGuard)
   @Roles(Role.owner)
+  @ApiOperation({ summary: 'Update one camping' })
   @UseInterceptors(FilesInterceptor('files'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -154,56 +156,50 @@ export class CampingsController {
   // createReviews
 
   @Post(':id/reviews')
-  @ApiTags('Campings - Create Reviews')
   @UseGuards(AuthGuardGuard)
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
-  @ApiOperation({ summary: 'Crear una o más reseñas para un camping' })
+  @ApiOperation({ summary: 'Create camping reviews' })
   @ApiResponse({ status: 201, type: [ReviewResponseDto] })
   @ApiBody({ type: [createReviewDto] })
   createReviews(@Body() body: createReviewDto, @Request() req) {
     return this.campingsService.createReviews(req.user.id, [body]);
   }
   @Get(':id/reviews')
-  @ApiTags('Campings - Get Reviews')
   @UseGuards(AuthGuardGuard)
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
-  @ApiOperation({ summary: 'Obtener reseñas de un camping' })
+  @ApiOperation({ summary: 'Get reviews from one camping' })
   @ApiResponse({ status: 200, type: [ReviewResponseDto] })
   getReviews(@Param('id') campingId: string): Promise<ReviewResponseDto[]> {
     return this.campingsService.getReviewsByCampingId(parseInt(campingId));
   }
 
   @Post(':id/favourites')
-  @ApiTags('Campings - Add Favourites')
   @UseGuards(AuthGuardGuard)
+  @ApiOperation({ summary: 'Add one camping to favourites' })
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
-
-  // @Roles(Role.owner)
   async addFavourite(@Param('id') campingId: string, @Request() req) {
-    // Si el userId viene del token, no es necesario recibirlo en el body
     const dto: CreateFavouritesDto = {
       campingId: Number(campingId),
       userId: req.user.id,
     };
     await this.campingsService.addFavourite(dto);
-    return { message: 'Camping agregado a favoritos' };
+    return { message: 'Camping added to favourites' };
   }
 
   @Delete(':id/favourites')
-  @ApiTags('Campings - Remove Favourites')
   @UseGuards(AuthGuardGuard)
+  @ApiOperation({ summary: 'Delete one camping from favourites' })
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   async removeFavourite(@Param('id') campingId: string, @Request() req) {
     await this.campingsService.removeFavourite(req.user.id, Number(campingId));
-    return { message: 'Camping eliminado de favoritos' };
+    return { message: 'Camping deleted from favourites' };
   }
 
   @Get('favourites')
-  @ApiTags('Campings - Get All Favourites')
   @UseGuards(AuthGuardGuard)
+  @ApiOperation({ summary: 'Get all favourite campings of the authenticated user' })
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
-  @ApiOperation({ summary: 'Listar campings favoritos del usuario autenticado' })
-  @ApiResponse({ status: 200, description: 'Lista de campings favoritos', type: [CampingResponseDto] })
+  // @ApiResponse({ status: 200, description: 'Lista de campings favoritos', type: [CampingResponseDto] })
   async getFavourites(@Request() req) {
     return this.campingsService.getFavouritesByUser(req.user.id);
   }

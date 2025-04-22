@@ -7,13 +7,20 @@ const streamifier = require('streamifier');
 @Injectable()
 export class CloudinaryService {
   uploadFiles(files: Express.Multer.File): Promise<CloudinaryResponse> {
-    return new Promise<CloudinaryResponse>((res, rej) => {
-      const uploadSteam = cloudinary.uploader.upload_stream((err, result) => {
-        if (err) return rej(err);
-
-        res(result);
+    try {
+      return new Promise<CloudinaryResponse>((res, rej) => {
+        const uploadSteam = cloudinary.uploader.upload_stream((err, result) => {
+          if (err) {
+            console.error('Error uploading Cloudinary', err.stack);
+            return rej(err);
+          }
+          res(result);
+        });
+        streamifier.createReadStream(files.buffer).pipe(uploadSteam);
       });
-      streamifier.createReadStream(files.buffer).pipe(uploadSteam);
-    });
+    } catch (error) {
+      console.error('Error in CloudinaryService', error.stack);
+      throw error;
+    }
   }
 }
