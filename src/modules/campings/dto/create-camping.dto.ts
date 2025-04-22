@@ -12,8 +12,9 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
-import { IsSanitizedHtml } from 'src/decorators/is-sanitizated-html.decorator';
-import { SANITIZE_CONFIG, SANITIZE_RICH_TEXT_CONFIG } from 'src/config/sanitize.config';
+import { IsSanitizedHtml } from '../../../../src/decorators/is-sanitizated-html.decorator';
+import { SANITIZE_CONFIG, SANITIZE_RICH_TEXT_CONFIG } from '../../../../src/config/sanitize.config';
+
 class LocationDto {
   @ApiProperty()
   @IsNotEmpty()
