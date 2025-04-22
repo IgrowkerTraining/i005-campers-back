@@ -74,7 +74,7 @@ export class MercadoPagoService {
     if (!payment) throw new NotFoundException('pago de reservacion no encontrado');
 
     if (!this.checkIsPossibleRefound({ limitDateRefound: payment.limitDateRefound })) {
-      throw new NotAcceptableException('Se Excedio la fecha limite de reembolso');
+      throw new BadRequestException('Se Excedio la fecha limite de reembolso');
     }
 
     const result = await fetch(`https://api.mercadopago.com/v1/payments/${payment.externalPaymentId}/refunds`, {
@@ -107,11 +107,11 @@ export class MercadoPagoService {
     const reservation = await this.reservationService.findOne(id);
 
     if (!reservation) {
-      throw new NotFoundException();
+      throw new BadRequestException();
     }
 
     if (reservation.status !== RESERVATION_STATUS.PENDING) {
-      throw new NotAcceptableException('El estatus de la reservacion debe ser PENDING');
+      throw new BadRequestException('El estatus de la reservacion debe ser PENDING');
     }
   }
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotAcceptableException } from '@nestjs/common';
+import { Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -47,7 +47,7 @@ export class ReservationsService {
     });
 
     if (tentsCount > limitCamping.maxTents || peopleCount > limitCamping.maxUsers) {
-      throw new NotAcceptableException('La reserva supera el limite personas o carpas permitidos en el camping');
+      throw new UnprocessableEntityException('La reserva supera el limite personas o carpas permitidos en el camping');
     }
 
     const availability = await this.checkAvailability({
@@ -60,7 +60,7 @@ export class ReservationsService {
     });
 
     if (!availability) {
-      throw new NotAcceptableException(
+      throw new UnprocessableEntityException(
         'La reserva supera el límite de carpas o personas permitidas en alguna de las fechas seleccionadas.',
       );
     }
@@ -179,11 +179,11 @@ export class ReservationsService {
 
   private checkDates(start: string, end: string) {
     if (start >= end) {
-      throw new NotAcceptableException('La fecha de inicio de reserva debe ser menor a la de finalizacion');
+      throw new UnprocessableEntityException('La fecha de inicio de reserva debe ser menor a la de finalizacion');
     }
 
     if (start.split('T')[0] < new Date().toISOString().split('T')[0]) {
-      throw new NotAcceptableException('No se pueden generar reservas para dias pasados');
+      throw new UnprocessableEntityException('No se pueden generar reservas para dias pasados');
     }
   }
 }
