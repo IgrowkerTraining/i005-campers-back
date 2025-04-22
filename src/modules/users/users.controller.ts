@@ -17,10 +17,10 @@ export class UserController {
     return await this.userService.findAll();
   }
 
-  @Post()
-  async create(@Body() data: any) {
-    return await this.userService.create(data);
-  }
+  // @Post()
+  // async create(@Body() data: any) {
+  //   return await this.userService.create(data);
+  // }
 
   @Get(':id')
   async findById(@Param('id') id: string) {

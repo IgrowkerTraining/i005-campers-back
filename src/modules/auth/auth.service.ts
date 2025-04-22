@@ -15,14 +15,20 @@ export class AuthService {
   async register(data: UserCreateDto) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    return await this.prisma.user.create({
+   try {return await this.prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
         password: hashedPassword,
         owner: data?.owner ?? false,
       },
-    });
+    });}
+    catch (error) {
+      if (error.code === 'P2002') {
+        throw new Error('El usuario con este correo electrónico ya existe');
+      }
+      throw error
+    }
   }
 
   async logIn(data: LoginRequestDto) {
