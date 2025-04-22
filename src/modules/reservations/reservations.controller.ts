@@ -1,23 +1,40 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Response, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Response,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
-import { ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { AuthGuardGuard } from 'src/guards/auth-guard.guard';
 
 @Controller('reservations')
+@ApiBearerAuth()
 export class ReservationsController {
   constructor(private readonly reservationsService: ReservationsService) {}
 
+  @UseGuards(AuthGuardGuard)
   @Post()
   async create(@Body() createReservationDto: CreateReservationDto) {
     return await this.reservationsService.create(createReservationDto);
   }
 
+  @UseGuards(AuthGuardGuard)
   @Get()
   findAll() {
     return this.reservationsService.findAll();
   }
 
+  @UseGuards(AuthGuardGuard)
   @Get(':id')
   async findOne(@Param('id') id: number) {
     const result = await this.reservationsService.findOne(+id);
@@ -27,11 +44,13 @@ export class ReservationsController {
     return result;
   }
 
+  @UseGuards(AuthGuardGuard)
   @Get('campingId/:id')
   findByCampingId(@Param('id') id: number) {
     return this.reservationsService.findByCampingId(+id);
   }
 
+  @UseGuards(AuthGuardGuard)
   @Get('campingId/:id/occupancy')
   @ApiQuery({
     name: 'start',
@@ -55,11 +74,13 @@ export class ReservationsController {
     return Object.fromEntries(result);
   }
 
+  @UseGuards(AuthGuardGuard)
   @Patch(':id')
   update(@Param('id') id: number, @Body() updateReservationDto: UpdateReservationDto) {
     return this.reservationsService.update(+id, updateReservationDto);
   }
 
+  @UseGuards(AuthGuardGuard)
   @Delete(':id')
   remove(@Param('id') id: number) {
     return this.reservationsService.remove(+id);
