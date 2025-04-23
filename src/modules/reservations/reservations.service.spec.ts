@@ -5,19 +5,12 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UnprocessableEntityException } from '@nestjs/common';
-import { RESERVATION_ERROR_MESSAGES } from 'src/common/constants/reservations-error-messages';
+import { RESERVATION_ERROR_MESSAGES } from 'src/common/errorMessages/reservations-error-messages';
 
 describe('ReservationsService', () => {
   let service: ReservationsService;
   let cache: Cache;
   let prismaService: PrismaService;
-
-  const fakeCampingId = 1;
-  const fakeCacheKey = `reservations:${fakeCampingId}`;
-  const fakeReservations = [
-    createReservationMock({ campingId: fakeCampingId }),
-    createReservationMock({ campingId: fakeCampingId }),
-  ];
 
   function createReservationMock(overrides: Partial<CreateReservationDto> = {}): CreateReservationDto {
     const startDate = new Date();
@@ -34,6 +27,14 @@ describe('ReservationsService', () => {
       ...overrides,
     };
   }
+
+  const fakeCampingId = 1;
+  const fakeCacheKey = `reservations:${fakeCampingId}`;
+  const fakeReservations = [
+    createReservationMock({ campingId: fakeCampingId }),
+    createReservationMock({ campingId: fakeCampingId }),
+  ];
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [

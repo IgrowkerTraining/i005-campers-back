@@ -6,7 +6,7 @@ import { LimitCamping, Reservation } from '@prisma/client';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
-import { RESERVATION_ERROR_MESSAGES } from 'src/common/constants/reservations-error-messages';
+import { RESERVATION_ERROR_MESSAGES } from 'src/common/errorMessages/reservations-error-messages';
 
 interface ReservationDataType {
   campingId: number;

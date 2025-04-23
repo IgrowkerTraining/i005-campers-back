@@ -3,6 +3,7 @@ import { ReservationsController } from './reservations.controller';
 import { ReservationsService } from './reservations.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { JwtService } from '@nestjs/jwt';
 
 describe('ReservationsController', () => {
   let controller: ReservationsController;
@@ -14,6 +15,7 @@ describe('ReservationsController', () => {
         ReservationsService,
         { provide: PrismaService, useValue: {} },
         { provide: CACHE_MANAGER, useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() } as Partial<Cache> },
+        { provide: JwtService, useValue: {} },
       ],
     }).compile();
 

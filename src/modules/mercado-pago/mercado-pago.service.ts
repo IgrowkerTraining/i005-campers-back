@@ -5,6 +5,7 @@ import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
 import { Reservation } from '@prisma/client';
 import { PaymentRepository } from './payment.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MP_ERROR_MESSAGES } from 'src/common/errorMessages/mercado-pago-messages';
 
 @Injectable()
 export class MercadoPagoService {
@@ -111,7 +112,7 @@ export class MercadoPagoService {
     }
 
     if (reservation.status !== RESERVATION_STATUS.PENDING) {
-      throw new BadRequestException('El estatus de la reservacion debe ser PENDING');
+      throw new BadRequestException(MP_ERROR_MESSAGES.STATUS_PENDING);
     }
   }
 
