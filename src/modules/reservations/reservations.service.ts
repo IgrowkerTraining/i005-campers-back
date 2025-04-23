@@ -6,7 +6,7 @@ import { LimitCamping, Reservation } from '@prisma/client';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
-import { decimalToSexagesimal } from 'geolib';
+import { RESERVATION_ERROR_MESSAGES } from 'src/common/errorMessages/reservations-error-messages';
 
 interface ReservationDataType {
   campingId: number;
@@ -47,7 +47,7 @@ export class ReservationsService {
     });
 
     if (tentsCount > limitCamping.maxTents || peopleCount > limitCamping.maxUsers) {
-      throw new UnprocessableEntityException('La reserva supera el limite personas o carpas permitidos en el camping');
+      throw new UnprocessableEntityException(RESERVATION_ERROR_MESSAGES.LIMIT_EXCEEDED);
     }
 
     const availability = await this.checkAvailability({
@@ -179,11 +179,11 @@ export class ReservationsService {
 
   private checkDates(start: string, end: string) {
     if (start >= end) {
-      throw new UnprocessableEntityException('La fecha de inicio de reserva debe ser menor a la de finalizacion');
+      throw new UnprocessableEntityException(RESERVATION_ERROR_MESSAGES.END_DATE_INVALID);
     }
 
     if (start.split('T')[0] < new Date().toISOString().split('T')[0]) {
-      throw new UnprocessableEntityException('No se pueden generar reservas para dias pasados');
+      throw new UnprocessableEntityException(RESERVATION_ERROR_MESSAGES.PAST_DAY);
     }
   }
 }

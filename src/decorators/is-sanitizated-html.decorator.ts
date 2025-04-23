@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions, ValidationArguments } from 'class-validator';
 
-import * as sanitizeHtml from 'sanitize-html';
+import sanitizeHtml from 'sanitize-html';
 
 export function IsSanitizedHtml(config?: sanitizeHtml.IOptions, ValidationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
