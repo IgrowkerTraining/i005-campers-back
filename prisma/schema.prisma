@@ -94,8 +94,8 @@ model Favourites {
 
 model Camping {
   id                Int                @id @default(autoincrement())
-  name              String // "Nombre del camping"
-  description       String // "Descripción"
+  name              String             @unique
+  description       String
   contactPhone      String
   location          Location           @relation(fields: [locationId], references: [id])
   locationId        Int

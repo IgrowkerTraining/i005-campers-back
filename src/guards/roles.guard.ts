@@ -26,7 +26,9 @@ export class RolesGuard implements CanActivate {
     const validate = requiredRoles.some((role) => user?.roles?.includes(role));
 
     if (!validate)
-      throw new ForbiddenException(`Forbidden. Only ${requiredRoles}s are allowed to create/delete campings`);
+      throw new ForbiddenException(
+        `Forbidden. Only ${requiredRoles}s are allowed to create, update or delete campings`,
+      );
 
     return validate;
   }
