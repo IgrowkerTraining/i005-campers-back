@@ -4,7 +4,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  Logger
+  ServiceUnavailableException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CampingResponseDto, CreateCampingDto, PaginatedResponseDto } from './dto/create-camping.dto';
@@ -16,6 +17,10 @@ import { ReviewResponseDto } from './dto/review-response.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateFavouritesDto } from './dto/favourites-camping.dto';
 import { UpdateCampingDto } from './dto/update-camping.dto';
+import { CAMPING_ERROR_MESSAGES } from '../../common/errorMessages/camping-error-messages';
+import { error } from 'console';
+import { PrismaClientInitializationError, PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import e from 'express';
 
 @Injectable()
 export class CampingsService {
@@ -25,6 +30,7 @@ export class CampingsService {
     private readonly campingGateway: CampingGateway,
     private readonly CloudinaryService: CloudinaryService,
   ) {}
+
   async findAll(page: number = 1, limit: number = 10): Promise<PaginatedResponseDto<CampingResponseDto>> {
     try {
       const skip = (page - 1) * limit;
@@ -61,12 +67,19 @@ export class CampingsService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
-      console.error('Error getting all campings:', error);
-      throw new InternalServerErrorException(`Error al obtener los campings: ${error.message}`);
+      if (error instanceof PrismaClientInitializationError) {
+        console.error('Database connection error:', error);
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.PRISMA.DATABASE);
+      }
+      if (error instanceof InternalServerErrorException) {
+        console.error('Error getting all campings:', error);
+        throw new InternalServerErrorException(`Error getting all campings: ${error.message}`);
+      }
+      throw error;
     }
   }
 
-  async remove(id: number): Promise<Camping> {
+  async remove(id: number, userId: string): Promise<Camping> {
     try {
       const campingToDelete = await this.prisma.camping.findUnique({
         where: { id },
@@ -81,7 +94,11 @@ export class CampingsService {
       });
 
       if (!campingToDelete) {
-        throw new NotFoundException(`Camping with ID ${id} not found`);
+        throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND(id));
+      }
+
+      if (campingToDelete.userId !== userId) {
+        throw new BadRequestException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_AUTHORIZED);
       }
 
       await this.prisma.$transaction([
@@ -97,15 +114,19 @@ export class CampingsService {
         excludeExtraneousValues: true,
       });
     } catch (error) {
+      if (error instanceof PrismaClientInitializationError) {
+        console.error('Database connection error:', error);
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.PRISMA.DATABASE);
+      }
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when deleting camping:', error);
-        throw new InternalServerErrorException(`Error when deleting camping: ${error.message}`);
+        if (error.code === 'P2025') {
+          throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND(id));
+        }
       }
-      if (error instanceof NotFoundException) {
-        throw error;
+      if (error instanceof InternalServerErrorException) {
+        throw new InternalServerErrorException('Error deleting camping');
       }
-      console.error('Unexpected error when deleting camping:', error);
-      throw new InternalServerErrorException(`Error al eliminar el camping: ${error.message}`);
+      throw error;
     }
   }
 
@@ -117,13 +138,11 @@ export class CampingsService {
 
       let urlArr: string[] = [];
       try {
-        // Espera a que todas las subidas de archivos terminen
         const response = await Promise.all(promiseFile);
         urlArr = response.map((k) => k.url);
       } catch (cloudinaryError) {
-        // Este bloque catch captura los errores de Cloudinary
         console.error('Cloudinary error when creating camping:', cloudinaryError);
-        throw new InternalServerErrorException(`Error uploading file/s to Cloudinary: ${cloudinaryError.message}`);
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.CLOUDINARY);
       }
 
       return await this.prisma.$transaction(async (tx) => {
@@ -191,16 +210,17 @@ export class CampingsService {
         });
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when creating camping:', error);
-        throw new InternalServerErrorException(`Error creating camping: ${error.message}`);
+      console.error('Error creating camping:', error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new BadRequestException(CAMPING_ERROR_MESSAGES.PRISMA.DUPLICATE);
+      }
+      if (error instanceof PrismaClientInitializationError) {
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.PRISMA.DATABASE);
       }
       if (error instanceof InternalServerErrorException) {
-        // Re-throw InternalServerErrorException to be handled by the global filter
-        throw error;
+        throw new InternalServerErrorException('Error creating camping');
       }
-      console.error('Unexpected error when creating camping:', error);
-      throw new InternalServerErrorException(`Error creating camping: ${error.message}`);
+      throw error;
     }
   }
 
@@ -222,20 +242,17 @@ export class CampingsService {
       });
 
       if (!camping) {
-        throw new NotFoundException(`Camping with ID ${id} not found`);
+        throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND(id));
       }
 
       if (camping.userId !== userId) {
-        throw new ForbiddenException('You do not have permission to update this camping');
+        throw new BadRequestException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_AUTHORIZED);
       }
 
       const updatePromises: any[] = [];
 
       const transaction = await this.prisma.$transaction(async (tx) => {
-        // Outer transaction
-
         if (files && files.length > 0) {
-          // Eliminar medios existentes solo si hay nuevos archivos
           await tx.media.deleteMany({
             where: { campingId: id },
           });
@@ -243,7 +260,6 @@ export class CampingsService {
           const promiseFile = files.map((k) => this.CloudinaryService.uploadFiles(k));
 
           try {
-            // Espera a que todas las subidas de archivos terminen
             const response = await Promise.all(promiseFile);
             const urlArr = response.map((k) => k.url);
 
@@ -257,9 +273,8 @@ export class CampingsService {
               }),
             );
           } catch (cloudinaryError) {
-            // Este bloque catch captura los errores de Cloudinary
             console.error('Cloudinary error when updating camping:', cloudinaryError);
-            throw new InternalServerErrorException(`Error uloading file/s to Cloudinary: ${cloudinaryError.message}`);
+            throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.CLOUDINARY);
           }
         }
 
@@ -273,20 +288,18 @@ export class CampingsService {
         }
 
         if (pricing) {
-          // Delete existing pricing records for the camping
           await tx.pricing.deleteMany({
             where: {
               campingId: id,
             },
           });
 
-          // Create new pricing records for the camping
           updatePromises.push(
             tx.pricing.createMany({
               data: pricing.map((price) => ({
                 ...price,
                 campingId: id,
-                tarifa: price.tarifa || 'carpa', // provide default value
+                tarifa: price.tarifa || 'carpa',
                 pricePerNight: price.pricePerNight !== undefined ? price.pricePerNight : 0,
               })),
             }),
@@ -294,19 +307,17 @@ export class CampingsService {
         }
 
         if (amenities) {
-          // Disconnect all existing amenities
           updatePromises.push(
             tx.camping.update({
               where: { id: id },
               data: {
                 amenities: {
-                  set: [], // Disconnect all
+                  set: [],
                 },
               },
             }),
           );
 
-          // Connect the new amenities
           const amenityConnectOrCreate = amenities.map((amenity) => {
             if (amenity.id) {
               return {
@@ -339,20 +350,18 @@ export class CampingsService {
         }
 
         if (nearbyAttractions) {
-          // Delete existing nearby attractions for the camping
           await tx.nearbyAttraction.deleteMany({
             where: {
               campingId: id,
             },
           });
 
-          // Create new nearby attractions for the camping
           updatePromises.push(
             tx.nearbyAttraction.createMany({
               data: nearbyAttractions.map((attraction) => ({
                 ...attraction,
                 campingId: id,
-                name: attraction.name || 'Default Attraction Name', // provide default value
+                name: attraction.name || 'Default Attraction Name',
               })),
             }),
           );
@@ -396,41 +405,33 @@ export class CampingsService {
       // Return the transaction result
       this.logger.log(`Attempting to update camping: ${transaction.name}`);
       this.logger.log(`Camping updated successfully: ${transaction.name}`);
+
       return transaction;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when updating camping:', error);
-        throw new InternalServerErrorException(`Error updating camping: ${error.message}`);
+      console.error('Error creating camping:', error);
+
+      if (error instanceof PrismaClientInitializationError) {
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.PRISMA.DATABASE);
       }
       if (error instanceof InternalServerErrorException) {
-        throw error;
+        throw new InternalServerErrorException('Error creating camping');
       }
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      if (error instanceof ForbiddenException) {
-        throw error;
-      }
-      console.error('Unexpected error when updating camping:', error);
-      throw new InternalServerErrorException(`Error updating camping: ${error.message}`);
+      throw error;
     }
   }
 
-  // create one review
   async createReviews(userId: string, createReviewDtos: createReviewDto[]): Promise<ReviewResponseDto[]> {
     try {
       return Promise.all(
         createReviewDtos.map(async (dto) => {
-          // Verificar que el camping existe
           const camping = await this.prisma.camping.findUnique({ where: { id: dto.campingId } });
-          if (!camping) throw new NotFoundException(`Camping with ID ${dto.campingId} not found`);
 
-          // Verificar reserva confirmada
+          if (!camping) throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND);
+
           const hasReservation = await this.prisma.reservation.findFirst({
             where: { userId, campingId: dto.campingId, status: 'CONFIRMED' },
           });
-          if (!hasReservation)
-            throw new ForbiddenException(`You must have a confirmed reservation for camping ${dto.campingId}`);
+          if (!hasReservation) throw new ForbiddenException('You must have a confirmed reservation for this camping');
 
           // Crear reseña
           this.logger.log(`Attempting to create review for camping: ${dto.campingId}`);
@@ -458,25 +459,29 @@ export class CampingsService {
         }),
       );
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when creating review:', error);
-        throw new InternalServerErrorException(`Error creating review: ${error.message}`);
+      console.error('Error creating review:', error);
+      if (error instanceof PrismaClientInitializationError) {
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.PRISMA.DATABASE);
       }
       if (error instanceof NotFoundException) {
-        throw error;
+        throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND);
       }
+
       if (error instanceof ForbiddenException) {
-        throw error;
+        throw new ForbiddenException('You must have a confirmed reservation for this camping');
       }
-      console.error('Unexpected error when creating review:', error);
-      throw new InternalServerErrorException(`Error creating review: ${error.message}`);
+      if (error instanceof InternalServerErrorException) {
+        throw new InternalServerErrorException('Error creating review');
+      }
+      throw error;
     }
   }
 
   async getReviewsByCampingId(campingId: number): Promise<ReviewResponseDto[]> {
     try {
       const camping = await this.prisma.camping.findUnique({ where: { id: campingId } });
-      if (!camping) throw new NotFoundException('Camping not found');
+
+      if (!camping) throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND(campingId));
 
       return this.prisma.review.findMany({
         where: { campingId },
@@ -491,15 +496,17 @@ export class CampingsService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when getting reviews:', error);
-        throw new InternalServerErrorException(`Error getting reviews: ${error.message}`);
+      console.error('Error getting reviews:', error);
+      if (error instanceof PrismaClientInitializationError) {
+        throw new ServiceUnavailableException(CAMPING_ERROR_MESSAGES.PRISMA.DATABASE);
       }
       if (error instanceof NotFoundException) {
-        throw error;
+        throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND(campingId));
       }
-      console.error('Unexpected error when getting reviews:', error);
-      throw new InternalServerErrorException(`Error getting reviews: ${error.message}`);
+      if (error instanceof InternalServerErrorException) {
+        throw new InternalServerErrorException('Error getting reviews');
+      }
+      throw error;
     }
   }
 
@@ -507,13 +514,11 @@ export class CampingsService {
     try {
       const { campingId, userId } = createFavouriteDto;
 
-      // Verifica que el camping existe
       const camping = await this.prisma.camping.findUnique({ where: { id: campingId } });
       if (!camping) {
-        throw new NotFoundException(`Camping with ID ${campingId} not found`);
+        throw new NotFoundException('Camping not found');
       }
 
-      // Verifica que no exista ya el favorito
       const exists = await this.prisma.favourites.findUnique({
         where: {
           userId_campingId: {
@@ -523,7 +528,7 @@ export class CampingsService {
         },
       });
       if (exists) {
-        throw new BadRequestException('This camping is already in favorites');
+        throw new BadRequestException('This camping is already a favorite');
       }
 
       // Crea el favorito
@@ -536,18 +541,11 @@ export class CampingsService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when adding favorite:', error);
-        throw new InternalServerErrorException(`Error adding favorite: ${error.message}`);
+      if (error instanceof InternalServerErrorException) {
+        console.error('Error adding camping to favorites:', error);
+        throw new InternalServerErrorException('Error adding camping to favorites');
       }
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      console.error('Unexpected error when adding favorite:', error);
-      throw new InternalServerErrorException(`Error adding favorite: ${error.message}`);
+      throw error;
     }
   }
 
@@ -563,7 +561,7 @@ export class CampingsService {
       });
 
       if (!favourite) {
-        throw new NotFoundException('Favorito not found');
+        throw new NotFoundException('Favorite not found');
       }
 
       await this.prisma.favourites.delete({
@@ -575,21 +573,16 @@ export class CampingsService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error('Prisma error when removing favorite:', error);
-        throw new InternalServerErrorException(`Error deleting favorite: ${error.message}`);
+      console.error('Error removing camping fromfavorites:', error);
+      if (error instanceof InternalServerErrorException) {
+        throw new InternalServerErrorException('Error removing camping from favorites');
       }
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      console.error('Unexpected error when removing favorite:', error);
-      throw new InternalServerErrorException(`Error deleting favorite: ${error.message}`);
+      throw error;
     }
   }
 
   async getFavouritesByUser(userId: string) {
     try {
-      // Busca los favoritos del usuario y trae la info del camping asociado
       const favourites = await this.prisma.favourites.findMany({
         where: { userId },
         include: {
@@ -606,11 +599,17 @@ export class CampingsService {
         },
       });
 
-      // Devuelve solo la info de los campings
+      if (favourites.length === 0) {
+        throw new NotFoundException('There are no favorites campings for this user');
+      }
+
       return favourites.map((fav) => fav.camping);
     } catch (error) {
-      console.error('Prisma error when getting favorites by user:', error);
-      throw new InternalServerErrorException(`Error getting favorites from user: ${error.message}`);
+      console.error('Error getting favorites by user:', error);
+      if (error instanceof InternalServerErrorException) {
+        throw new InternalServerErrorException('Error getting favorites by user');
+      }
+      throw error;
     }
   }
 }
