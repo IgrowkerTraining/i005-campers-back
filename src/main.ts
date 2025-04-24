@@ -2,8 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from './common/exception.filter';
-
-import compression = require('compression');
+import compression from 'compression';
 
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
