@@ -4,7 +4,11 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+
   ServiceUnavailableException,
+
+  Logger
+
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CampingResponseDto, CreateCampingDto, PaginatedResponseDto } from './dto/create-camping.dto';
@@ -23,6 +27,7 @@ import e from 'express';
 
 @Injectable()
 export class CampingsService {
+  private readonly logger = new Logger(CampingsService.name);
   constructor(
     private prisma: PrismaService,
     private readonly campingGateway: CampingGateway,
@@ -106,7 +111,8 @@ export class CampingsService {
         this.prisma.media.deleteMany({ where: { campingId: id } }),
         this.prisma.camping.delete({ where: { id } }),
       ]);
-
+      this.logger.log(`Attempting to delete camping with ID ${id}`);
+      this.logger.log(`Camping delete successfully: ${campingToDelete.name}`);
       return plainToInstance(CampingResponseDto, campingToDelete, {
         excludeExtraneousValues: true,
       });
@@ -200,7 +206,8 @@ export class CampingsService {
           },
         });
         this.campingGateway.notifyNewCamping(createdCamping);
-
+        this.logger.log(`Camping created successfully: ${createdCamping.name}`);
+        this.logger.log(`Attempting to create camping: ${createdCamping.name}`);
         return plainToInstance(CampingResponseDto, createdCamping, {
           excludeExtraneousValues: true,
         });
@@ -398,6 +405,11 @@ export class CampingsService {
         });
       });
 
+
+      // Return the transaction result
+      this.logger.log(`Attempting to update camping: ${transaction.name}`);
+      this.logger.log(`Camping updated successfully: ${transaction.name}`);
+
       return transaction;
     } catch (error) {
       console.error('Error creating camping:', error);
@@ -428,6 +440,8 @@ export class CampingsService {
           if (!hasReservation) throw new ForbiddenException('You must have a confirmed reservation for this camping');
 
           // Crear reseña
+          this.logger.log(`Attempting to create review for camping: ${dto.campingId}`);
+          this.logger.log(`Review created successfully: ${dto.name}`);
           return this.prisma.review.create({
             data: {
               campingId: dto.campingId,
@@ -523,6 +537,10 @@ export class CampingsService {
         throw new BadRequestException('This camping is already a favorite');
       }
 
+
+      // Crea el favorito
+      this.logger.log(`Attempting to add favorite for camping: ${campingId}`);
+      this.logger.log(`Favorite added successfully: ${campingId}`);
       await this.prisma.favourites.create({
         data: {
           userId,

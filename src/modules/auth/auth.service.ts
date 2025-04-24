@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable,Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -7,6 +7,7 @@ import { LoginRequestDto } from './dto/login-request.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -15,51 +16,76 @@ export class AuthService {
   async register(data: UserCreateDto) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-   try {return await this.prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: hashedPassword,
-        owner: data?.owner ?? false,
-      },
-    });}
-    catch (error) {
+    try {
+      
+      this.logger.log('Trying to register new user', data.email);
+      
+      const newUser = await this.prisma.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          password: hashedPassword,
+          owner: data?.owner ?? false,
+        },
+      });
+
+      
+      this.logger.log('Successfully registered user', newUser.email);
+      
+      return newUser;
+    } catch (error) {
+     
       if (error.code === 'P2002') {
-        throw new Error('El usuario con este correo electrónico ya existe');
+        this.logger.error('Attempt to register duplicate user', error);
+        throw new Error('The user with this email already exists');
       }
-      throw error
+      
+      
+      this.logger.error('Registration error', error);
+      throw error;
     }
   }
-
   async logIn(data: LoginRequestDto) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email: data.email,
-      },
-    });
+    this.logger.log('Trying to log in', data.email);
 
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+      const user = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
 
-    const validatePassword = await bcrypt.compare(data.password, user.password);
+      if (!user) {
+        
+        this.logger.warn('Login failed - User not found', data.email);
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    if (!validatePassword)
-      throw new UnauthorizedException('Invalid credentials');
+      const validatePassword = await bcrypt.compare(data.password, user.password);
+      
+      if (!validatePassword) {
+       
+        this.logger.warn('Login failed - Incorrect password', data.email);
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    const payload = {
-      id: user.id,
-      email: user.email,
-      owner: user.owner,
-    };
+      this.logger.log('Successful login', user.email);
 
-    const token = this.jwtService.sign(payload);
+      const payload = {
+        id: user.id,
+        email: user.email,
+        owner: user.owner,
+      };
 
-    const { owner, ...userWithoutOwner } = user;
+      const token = this.jwtService.sign(payload);
+      const { owner, ...userWithoutOwner } = user;
 
-    return {
-      user: userWithoutOwner,
-      email: user.email,
-      token,
-      owner,
-    };
+      return {
+        user: userWithoutOwner,
+        email: user.email,
+        token,
+        owner,
+      };
+    } catch (error) {
+     
+      this.logger.error('Error during login', error);
+      throw error;
+    }
   }
-}

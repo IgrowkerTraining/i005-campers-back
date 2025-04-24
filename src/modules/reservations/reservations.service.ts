@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Inject, Injectable,Logger, UnprocessableEntityException } from '@nestjs/common';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -19,6 +19,7 @@ interface ReservationDataType {
 @Injectable()
 export class ReservationsService {
   private readonly cachePrefixKey = 'reservations:';
+  private readonly logger = new Logger(ReservationsService.name);
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -66,6 +67,7 @@ export class ReservationsService {
     }
 
     this.cacheManager.del(`${this.cachePrefixKey}${campingId}`);
+    this.logger.log(`Reservation created: ${createReservationDto.campingId}`);
 
     return this.prisma.reservation.create({
       data: {
@@ -151,7 +153,7 @@ export class ReservationsService {
         curr.setDate(curr.getDate() + 1);
       }
     });
-
+    this.logger.log(`Availability per day for camping ${data.campingId}:`, dateMap);
     return dateMap;
   }
 
