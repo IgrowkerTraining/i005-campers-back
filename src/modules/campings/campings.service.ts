@@ -416,18 +416,15 @@ export class CampingsService {
     try {
       return Promise.all(
         createReviewDtos.map(async (dto) => {
-          // Verificar que el camping existe
           const camping = await this.prisma.camping.findUnique({ where: { id: dto.campingId } });
 
           if (!camping) throw new NotFoundException(CAMPING_ERROR_MESSAGES.PRISMA.NOT_FOUND);
 
-          // Verificar reserva confirmada
           const hasReservation = await this.prisma.reservation.findFirst({
             where: { userId, campingId: dto.campingId, status: 'CONFIRMED' },
           });
           if (!hasReservation) throw new ForbiddenException('You must have a confirmed reservation for this camping');
 
-          // Crear reseña
           return this.prisma.review.create({
             data: {
               campingId: dto.campingId,
