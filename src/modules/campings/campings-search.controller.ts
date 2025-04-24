@@ -23,7 +23,6 @@ export class CampingsSearchController {
 
   @Get()
   @UseGuards(AuthGuardGuard)
-  @ApiTags('Campings - Search')
   @UseInterceptors(ClassSerializerInterceptor)
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   @ApiOkResponse({

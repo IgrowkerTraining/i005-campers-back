@@ -7,6 +7,7 @@ import {
   Get,
   MaxFileSizeValidator,
   Param,
+  ParseArrayPipe,
   ParseFilePipe,
   Post,
   Put,
@@ -98,8 +99,9 @@ export class CampingsController {
   @Roles(Role.owner)
   @ApiOperation({ summary: 'Delete one camping' })
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
-  remove(@Param('id') id: string) {
-    return this.campingsService.remove(+id);
+  async remove(@Param('id') id: string, @Request() req) {
+    const userId = req.user.id;
+    return this.campingsService.remove(+id, userId);
   }
 
   @Put(':id')
@@ -160,10 +162,11 @@ export class CampingsController {
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
   @ApiOperation({ summary: 'Create camping reviews' })
   @ApiResponse({ status: 201, type: [ReviewResponseDto] })
-  @ApiBody({ type: [createReviewDto] })
+  @ApiBody({ type: createReviewDto })
   createReviews(@Body() body: createReviewDto, @Request() req) {
     return this.campingsService.createReviews(req.user.id, [body]);
   }
+
   @Get(':id/reviews')
   @UseGuards(AuthGuardGuard)
   @UsePipes(new ValidationPipe({ transform: true, validateCustomDecorators: true }))
