@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { ReservationsService } from '../reservations/reservations.service';
 import { PaymentDataType } from 'src/common/types/mercadoPago/payment';
 import { RESERVATION_STATUS } from 'src/common/enums/reservation-status.enum';
@@ -9,6 +9,7 @@ import { MP_ERROR_MESSAGES } from 'src/common/errorMessages/mercado-pago-message
 
 @Injectable()
 export class MercadoPagoService {
+  private readonly logger = new Logger(MercadoPagoService.name);
   constructor(
     private readonly reservationService: ReservationsService,
     private readonly prisma: PrismaService,
@@ -38,6 +39,7 @@ export class MercadoPagoService {
     });
 
     const response = await result.json();
+    this.logger.log('Payment URL generated:', response);
     return response;
   }
 
@@ -65,7 +67,7 @@ export class MercadoPagoService {
 
       return { reservation };
     });
-
+    this.logger.log('Payment accredited:', transaction);
     return transaction.reservation;
   }
 
