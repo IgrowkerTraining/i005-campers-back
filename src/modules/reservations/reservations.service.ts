@@ -61,9 +61,7 @@ export class ReservationsService {
     });
 
     if (!availability) {
-      throw new UnprocessableEntityException(
-        'La reserva supera el límite de carpas o personas permitidas en alguna de las fechas seleccionadas.',
-      );
+      throw new UnprocessableEntityException(RESERVATION_ERROR_MESSAGES.NOT_AVAILABILITY);
     }
 
     this.cacheManager.del(`${this.cachePrefixKey}${campingId}`);
